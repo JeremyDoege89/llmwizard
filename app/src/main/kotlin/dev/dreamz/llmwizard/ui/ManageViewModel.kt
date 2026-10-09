@@ -23,6 +23,7 @@ import dev.dreamz.llmwizard.data.ServerEntity
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -172,6 +173,17 @@ class ManageViewModel @Inject constructor(handle: SavedStateHandle, private val 
     private suspend fun loadExposureNow(srv: Server) {
         val (_, profile) = srv.scan()
         _ui.update { it.copy(exposure = dev.dreamz.llmwizard.core.exposure.Exposure.state(profile, it.manifest?.settings?.get("settings.bind"))) }
+    }
+
+    /** The support report: hostnames, addresses and user names redacted unless [redact] is off. */
+    suspend fun diagnostics(redact: Boolean): String {
+        val s = server()
+        val rows = servers.db.transcript().forServer(servers.target(s).name).first()
+        val profile = s.profileJson?.let { runCatching { Json { ignoreUnknownKeys = true }.decodeFromString(HardwareProfile.serializer(), it) }.getOrNull() }
+        val entries = rows.reversed().map { dev.dreamz.llmwizard.core.recipe.TranscriptEntry(it.at, it.serverName, it.kind, it.script, it.exitCode, it.outputTail) }
+        return dev.dreamz.llmwizard.core.support.Diagnostics.report(
+            dev.dreamz.llmwizard.core.support.Diagnostics.Input(dev.dreamz.llmwizard.BuildConfig.VERSION_NAME, android.os.Build.VERSION.RELEASE, profile, _ui.value.manifest, entries, s.host, s.user),
+            redact)
     }
 
     fun update() = run("ollama-update", mapOf("prefix" to (_ui.value.manifest?.settings?.get("ollama.prefix") ?: "/usr/local")), root = true)

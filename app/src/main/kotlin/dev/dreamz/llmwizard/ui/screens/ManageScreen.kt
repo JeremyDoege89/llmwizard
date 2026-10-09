@@ -60,6 +60,7 @@ fun ManageScreen(ui: ManageUi, vm: ManageViewModel?, onBack: () -> Unit) {
     var confirmDelete by remember { mutableStateOf<String?>(null) }
     var confirmUninstall by remember { mutableStateOf(false) }
     var showLog by remember { mutableStateOf(false) }
+    var showDiag by remember { mutableStateOf(false) }
     val st = ui.status
     Scaffold(topBar = {
         TopAppBar(title = { Column { Text("Server"); ui.server?.let { Text(it.name, style = MaterialTheme.typography.bodySmall) } } },
@@ -129,6 +130,7 @@ fun ManageScreen(ui: ManageUi, vm: ManageViewModel?, onBack: () -> Unit) {
                     OutlinedButton({ vm?.addSudoRule() }) { Text("Add the sudo rule") }
                 } else Text("The no-password sudo rule is installed.", style = MaterialTheme.typography.bodySmall)
                 OutlinedButton({ confirmUninstall = true }) { Text("Uninstall…") }
+                OutlinedButton({ showDiag = true }) { Text("Diagnostic report…") }
             }
         }
     }
@@ -143,6 +145,7 @@ fun ManageScreen(ui: ManageUi, vm: ManageViewModel?, onBack: () -> Unit) {
             },
             confirmButton = { TextButton({ vm?.closeAction() }, enabled = !a.running) { Text("Close") } })
     }
+    if (showDiag && vm != null) DiagnosticDialog(vm) { showDiag = false }
     confirmDelete?.let { m ->
         AlertDialog(onDismissRequest = { confirmDelete = null }, title = { Text("Delete $m?") }, text = { Text("It is removed from the server. You can download it again later.") },
             confirmButton = { TextButton({ vm?.delete(m); confirmDelete = null }) { Text("Delete") } }, dismissButton = { TextButton({ confirmDelete = null }) { Text("Cancel") } })
@@ -169,4 +172,24 @@ fun ManageScreen(ui: ManageUi, vm: ManageViewModel?, onBack: () -> Unit) {
         PasswordKind.SUDO -> PasswordDialog("sudo password", "This change needs administrator rights. The password goes to sudo for this action only.", { vm?.submitPassword(it) }, { vm?.cancelPassword() })
         null -> {}
     }
+}
+
+@Composable
+private fun DiagnosticDialog(vm: ManageViewModel, onClose: () -> Unit) {
+    var redact by remember { mutableStateOf(true) }
+    var text by remember { mutableStateOf("") }
+    androidx.compose.runtime.LaunchedEffect(redact) { text = vm.diagnostics(redact) }
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    AlertDialog(onDismissRequest = onClose, title = { Text("Diagnostic report") },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("This is everything that would be shared. Nothing is sent anywhere by the app; copy it and send it yourself if you want help.", style = MaterialTheme.typography.bodySmall)
+                Row(verticalAlignment = Alignment.CenterVertically) { Checkbox(redact, { redact = it }); Text("Hide addresses, host and user names") }
+                MonoBlock(text.ifEmpty { "…" })
+            }
+        },
+        confirmButton = { TextButton({
+            (ctx.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager).setPrimaryClip(android.content.ClipData.newPlainText("llmwizard report", text)); onClose()
+        }) { Text("Copy") } },
+        dismissButton = { TextButton(onClose) { Text("Close") } })
 }

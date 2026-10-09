@@ -33,7 +33,7 @@ android {
         }
     }
 
-    buildFeatures { compose = true }
+    buildFeatures { compose = true; buildConfig = true }
 
     testOptions {
         unitTests {
@@ -83,6 +83,8 @@ dependencies {
     implementation(libs.datastore.preferences)
     // QR codes for the connect screen. Pure Java, no network code.
     implementation(libs.zxing.core)
+    // The one-time Pro unlock (PLAN.md Phase 5). Behind the Entitlements interface.
+    implementation(libs.billing.ktx)
 
     // Screenshot tests: screens rendered to PNG on the JVM (Robolectric + Roborazzi).
     testImplementation(libs.junit4)

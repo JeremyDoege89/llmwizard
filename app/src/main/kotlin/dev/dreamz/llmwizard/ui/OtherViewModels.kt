@@ -34,7 +34,8 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
-class HomeViewModel @Inject constructor(private val servers: Servers, private val settings: Settings) : ViewModel() {
+class HomeViewModel @Inject constructor(private val servers: Servers, private val settings: Settings, entitlements: dev.dreamz.llmwizard.billing.Entitlements) : ViewModel() {
+    val pro: StateFlow<Boolean> = entitlements.pro.stateIn(viewModelScope, SharingStarted.Eagerly, false)
     val firstRunAccepted: StateFlow<Boolean?> = settings.firstRunAccepted.stateIn(viewModelScope, SharingStarted.Eagerly, null)
     val list: StateFlow<List<ServerEntity>> = servers.db.servers().all().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     fun acceptFirstRun() = viewModelScope.launch { settings.acceptFirstRun() }
@@ -192,4 +193,11 @@ class KeyViewModel @Inject constructor(private val servers: Servers) : ViewModel
             _key.value = pub to (servers.vault.fingerprint() ?: "")
         }
     }
+}
+
+@HiltViewModel
+class UpgradeViewModel @Inject constructor(val billing: dev.dreamz.llmwizard.billing.PlayBilling, private val entitlements: dev.dreamz.llmwizard.billing.Entitlements) : ViewModel() {
+    val pro: StateFlow<Boolean> = entitlements.pro.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    init { billing.loadPrice(); billing.refresh() }
+    fun setDebugOverride(on: Boolean) = viewModelScope.launch { entitlements.setDebugOverride(on) }
 }

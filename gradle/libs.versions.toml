@@ -24,6 +24,7 @@ roborazzi = "1.76.0"
 robolectric = "4.17"
 junit4 = "4.13.2"
 zxing = "3.5.4"
+billing = "9.1.0"
 
 [libraries]
 coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
@@ -60,6 +61,7 @@ roborazzi = { module = "io.github.takahirom.roborazzi:roborazzi", version.ref = 
 roborazzi-compose = { module = "io.github.takahirom.roborazzi:roborazzi-compose", version.ref = "roborazzi" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 junit4 = { module = "junit:junit", version.ref = "junit4" }
+billing-ktx = { module = "com.android.billingclient:billing-ktx", version.ref = "billing" }
 zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
 compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }

@@ -25,12 +25,17 @@ import dev.dreamz.llmwizard.ui.screens.KeyRoute
 import dev.dreamz.llmwizard.ui.screens.ManualRoute
 import dev.dreamz.llmwizard.ui.screens.SetupRoute
 import dev.dreamz.llmwizard.ui.screens.TranscriptRoute
+import dev.dreamz.llmwizard.ui.screens.UpgradeRoute
 import dev.dreamz.llmwizard.ui.theme.LlmWizardTheme
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @javax.inject.Inject lateinit var billing: dev.dreamz.llmwizard.billing.PlayBilling
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Picks up a purchase made elsewhere, a pending one that completed, or a refund.
+        billing.refresh()
         enableEdgeToEdge()
         setContent { LlmWizardTheme { Surface { AppNav() } } }
     }
@@ -46,7 +51,10 @@ private fun AppNav() {
         composable("first-run") { FirstRunScreen { home.acceptFirstRun(); nav.navigate("home") { popUpTo("first-run") { inclusive = true } } } }
         composable("home") {
             val list by home.list.collectAsState()
-            HomeScreen(list, onOpen = { nav.navigate("server/$it") }, onAdd = { nav.navigate("add") }, onManual = { nav.navigate("manual") },
+            val pro by home.pro.collectAsState()
+            // Free tier: one server (PLAN.md question 3). More go through the Pro screen.
+            HomeScreen(list, onOpen = { nav.navigate("server/$it") },
+                onAdd = { if (pro || list.size < dev.dreamz.llmwizard.billing.ProFeatures.FREE_SERVERS) nav.navigate("add") else nav.navigate("upgrade") }, onManual = { nav.navigate("manual") },
                 onKey = { nav.navigate("key") }, onDelete = home::delete)
         }
         composable("add") {
@@ -60,6 +68,7 @@ private fun AppNav() {
         composable("chat/{id}", arguments = listOf(navArgument("id") { type = NavType.LongType })) { ChatRoute(hiltViewModel()) { nav.popBackStack() } }
         composable("manage/{id}", arguments = listOf(navArgument("id") { type = NavType.LongType })) { ManageRoute(hiltViewModel()) { nav.popBackStack() } }
         composable("manual") { ManualRoute(hiltViewModel()) { nav.popBackStack() } }
+        composable("upgrade") { UpgradeRoute(hiltViewModel()) { nav.popBackStack() } }
         composable("key") { KeyRoute(hiltViewModel()) { nav.popBackStack() } }
     }
 }

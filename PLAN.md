@@ -635,12 +635,12 @@ Gate: with home network mode on, another device on the LAN uses the endpoint wit
 
 ### Phase 5: release 1 (about two weeks, plus Play's testing period)
 
-- [ ] Remote recipe and catalog bundle: signed, version-checked, bundled fallback, and a signing tool. The private key stays offline with Jay.
-- [ ] Pin the Ollama version and sha256 in the install recipe
-- [ ] Pro unlock with Play Billing: a one-time product, restore, cached entitlement, a debug override. Keep the entitlement check behind one interface so features can move between tiers and a license key can plug in later.
+- [ ] Remote recipe and catalog bundle: signed, version-checked, bundled fallback, and a signing tool. The private key stays offline with Jay. (Format, verifier with key rotation and rollback protection, and the CLI signing tool done; fetching waits on question 5: where it is hosted.)
+- [x] Pin the Ollama version and sha256 in the install recipe
+- [ ] (built; untestable until a Play track exists and the product id is set) Pro unlock with Play Billing: a one-time product, restore, cached entitlement, a debug override. Keep the entitlement check behind one interface so features can move between tiers and a license key can plug in later.
 - [ ] Release hardening: R8 on, backup off, network security config reviewed, timeouts reviewed, strings in resources, an accessibility pass
-- [ ] "Copy diagnostic report", with hostnames, addresses and usernames redacted by default. This is the support channel, since there is no crash reporter.
-- [ ] A privacy policy page and in-app terms
+- [x] "Copy diagnostic report", with hostnames, addresses and usernames redacted by default. This is the support channel, since there is no crash reporter.
+- [ ] A privacy policy page and in-app terms (draft text in docs/privacy-policy.md; not hosted)
 - [ ] Play Console: listing, data safety form, content rating, and review notes. Reviewers have no server, so point them at manual mode and include a short video of the full flow.
 - [ ] Test on a machine with an NVIDIA GPU
 
