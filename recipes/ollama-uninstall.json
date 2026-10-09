@@ -83,7 +83,13 @@
         "created:dir:/usr/share/ollama",
         "param:deleteModels"
       ],
-      "run": "rm -rf /usr/share/ollama/.ollama\n"
+      "run": "rm -rf /usr/share/ollama/.ollama\n",
+      "removes": [
+        {
+          "kind": "model",
+          "name": "*"
+        }
+      ]
     },
     {
       "id": "user",

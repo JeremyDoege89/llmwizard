@@ -22,7 +22,8 @@ data class Manifest(
     fun plus(entries: List<ManifestEntry>): Manifest =
         copy(created = created + entries.filterNot { e -> has(e.kind, e.name) })
 
-    fun minus(kind: String, name: String) = copy(created = created.filterNot { it.kind == kind && it.name == name })
+    /** Drops an entry; the name "*" drops every entry of that kind. */
+    fun minus(kind: String, name: String) = copy(created = created.filterNot { it.kind == kind && (name == "*" || it.name == name) })
 
     fun encode(): String = json.encodeToString(serializer(), this)
 
