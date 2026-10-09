@@ -1,6 +1,6 @@
 # Build plan: your own AI, set up and run from your phone
 
-Status: Phases 0 and 1 built and checked against LXD stand-ins for the test VMs (2026-10-10, overnight run); gates not yet walked with Jay. See NIGHT-LOG.md. Phase 2 built (on-phone gate runs still to do), Phase 3 built and checked through the ViewModels against wiz-debian. Phase 4 built except Tailscale and the phone-side exposure probe. (Keep this line current.)
+Status: Phase 1 gate run on the real Hyper-V VMs (2026-10-10): all items pass except the MX desktop (not available). Phases 2-4 built and checked through the ViewModels; Phase 5 waiting on Jay (Play Console, signing key, hosting, NVIDIA). Gates still to walk with Jay. (Keep this line current.)
 
 Codename `llmwizard` until Jay names it. Written 2026-10-09 and revised the same day to fold in Jay's `CODE-PLAN.md` and the assistant half. `CODE-PLAN.md` is retired. Section 12 says where each part of it went.
 
