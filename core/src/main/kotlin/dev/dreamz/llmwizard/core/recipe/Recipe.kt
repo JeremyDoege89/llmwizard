@@ -32,7 +32,7 @@ data class Recipe(
             }.readBytes().toString(Charsets.UTF_8),
         )
 
-        val BUNDLED = listOf("ollama-install", "ollama-uninstall", "ollama-update", "ollama-configure", "authorized-key-add", "model-pull", "service-control", "service-control-nopw", "sudoers-dropin")
+        val BUNDLED = listOf("ollama-install", "ollama-uninstall", "ollama-update", "ollama-configure", "authorized-key-add", "model-pull", "service-control", "service-control-nopw", "sudoers-dropin", "expose-lan", "expose-private")
     }
 }
 
@@ -53,6 +53,8 @@ enum class ParamType {
     @SerialName("ident") IDENT,
     /** One of [ParamSpec.values]. */
     @SerialName("enum") ENUM,
+    /** An IPv4 network like 192.168.1.0/24. */
+    @SerialName("cidr") CIDR,
 }
 
 @Serializable
@@ -121,6 +123,7 @@ object Params {
             ParamType.SSH_PUBLIC_KEY -> require(PUBKEY.matches(Shell.text(value))) { "Not an SSH public key line" }
             ParamType.BOOL -> require(value == "yes" || value == "no") { "Expected yes or no for $name" }
             ParamType.IDENT -> Shell.identifier(value)
+            ParamType.CIDR -> require(Regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}/([0-9]|[12][0-9]|3[0-2])$").matches(value) && value.substringBefore('/').split('.').all { it.toInt() in 0..255 }) { "Not a network like 192.168.1.0/24: $value" }
             ParamType.ENUM -> require(spec.values?.contains(value) == true) { "$name must be one of ${spec.values}" }
         }
         return value

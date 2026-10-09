@@ -183,6 +183,7 @@ class RecipeEngine(private val ops: TargetOps, private val now: () -> String = {
         val parts = req.split(':', limit = 3)
         when (parts[0]) {
             "created" -> manifest?.has(parts[1], substitute(parts[2], values)) == true
+            "createdkind" -> manifest?.names(parts[1])?.isNotEmpty() == true
             "param" -> values[parts[1]].let { !it.isNullOrEmpty() && it != "no" }
             "noparam" -> values[parts[1]].let { it.isNullOrEmpty() || it == "no" }
             else -> error("Unknown requirement '$req' in step ${s.id}")

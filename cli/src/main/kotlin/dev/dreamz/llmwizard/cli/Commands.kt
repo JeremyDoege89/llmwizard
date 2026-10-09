@@ -58,6 +58,7 @@ class Commands(private val args: List<String>) {
         "uninstall" -> uninstall()
         "transcript" -> transcript()
         "agent" -> agent()
+        "expose" -> expose()
         "catalog-check" -> catalogCheck()
         "eval-tools" -> evalTools()
         null, "help", "-h", "--help" -> { usage(); 0 }
@@ -89,6 +90,8 @@ class Commands(private val args: List<String>) {
           uninstall <target> [--delete-models] [--yes]
                                    remove what llmwizard installed (and only that)
           transcript <target>      every script sent to the target, with exit codes
+          expose <target> [lan [--address <ip>] | private]
+                                   show exposure state, share with the LAN, or go back to private
           catalog-check [--write]  resolve every catalog tag on registry.ollama.ai; --write updates sizes
           agent <target> "<request>" [--model <tag>]
                                    print the tool proposal the server model makes; executes nothing
@@ -391,6 +394,46 @@ class Commands(private val args: List<String>) {
             }
         }
         return simpleRecipe("ollama-uninstall", mapOf("deleteModels" to if (deleteModels) "yes" else "no"))
+    }
+
+    private suspend fun expose(): Int {
+        val e = entry()
+        val mode = args.getOrNull(1)
+        connect(e).use { s ->
+            val server = server(e, s)
+            val manifest = server.manifest()
+            val bind = manifest?.settings?.get("settings.bind")
+            val state = dev.dreamz.llmwizard.core.exposure.Exposure.state(server.scan().second, bind)
+            println("Ollama listens on ${state.bind}. Firewall (ufw) active: ${state.ufwActive ?: "unknown"}.")
+            dev.dreamz.llmwizard.core.exposure.Exposure.warnings(state).forEach { println("! $it") }
+            val opts = dev.dreamz.llmwizard.core.exposure.Exposure.options(state)
+            if (mode == null) {
+                println("Home-network choices:")
+                opts.forEach { println("  ${if (it.allowed) "ok " else "NO "} ${it.bind}  ${it.label}: ${it.reason}") }
+                dev.dreamz.llmwizard.core.exposure.Exposure.urls(state).forEach { println("Other apps: $it/v1 (any API key), native: $it") }
+                return 0
+            }
+            val keep = mapOf("contextLength" to (manifest?.settings?.get("settings.contextLength") ?: "8192"), "keepAlive" to (manifest?.settings?.get("settings.keepAlive") ?: "30m"))
+            val privilege = privilege(server, e)
+            try {
+                val (recipeId, params) = when (mode) {
+                    "lan" -> {
+                        val want = opt("--address")
+                        val choice = opts.firstOrNull { it.allowed && it.firewallCidr != null && (want == null || it.bind.startsWith("$want:")) }
+                            ?: throw CliError("no allowed LAN address" + (want?.let { " matching $it" } ?: ""))
+                        "expose-lan" to keep + mapOf("bind" to choice.bind) + (if (state.ufwActive == true) mapOf("firewallCidr" to choice.firewallCidr!!) else emptyMap())
+                    }
+                    "private" -> "expose-private" to keep + (manifest?.names("ufw")?.firstOrNull()?.let { mapOf("firewallCidr" to it) } ?: emptyMap())
+                    else -> throw CliError("expose takes lan or private")
+                }
+                val recipe = Recipe.bundled(recipeId)
+                val out = server.runRecipe(recipe, params, privilege, approve = { f, plan -> preview(recipe, plan, f, false) }, events = ::printEvent)
+                println(out.result?.message ?: "Not run.")
+                return if (out.result?.ok == true) 0 else 1
+            } finally {
+                (privilege as? Privilege.SudoPassword)?.wipe()
+            }
+        }
     }
 
     private suspend fun catalogCheck(): Int {

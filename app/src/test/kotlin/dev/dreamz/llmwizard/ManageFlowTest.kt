@@ -97,6 +97,22 @@ class ManageFlowTest {
         action("sudo rule") { m.addSudoRule() }
         assertTrue(m.ui.value.manifest!!.has("file", "/etc/sudoers.d/llmwizard-ollama"))
         action("restart without password") { m.service("restart") }
+        // Share with the LAN: this test process is "another device on the network".
+        m.loadExposure()
+        val ex = until(120_000, "exposure", { m.ui.value }) { (it.exposure != null && it.busy == null) || it.problem != null }.exposure!!
+        assertTrue(ex.isPrivate)
+        val lan = dev.dreamz.llmwizard.core.exposure.Exposure.options(ex).first { it.allowed && it.firewallCidr != null }
+        fun reachable(): Boolean = runCatching { java.net.Socket().use { it.connect(java.net.InetSocketAddress(host, 11434), 3000); true } }.getOrDefault(false)
+        assertTrue("private before sharing", !reachable())
+        action("share on LAN") { m.expose(lan) }
+        until(60_000, "exposure refreshed", { m.ui.value }) { it.exposure?.isPrivate == false && it.busy == null }
+        assertTrue("reachable after sharing", reachable())
+        val v = java.net.URI("http://$host:11434/v1/models").toURL().readText()
+        assertTrue(v, "qwen3:0.6b" in v)
+        action("go private") { m.goPrivate() }
+        until(60_000, "private again", { m.ui.value }) { it.exposure?.isPrivate == true && it.busy == null }
+        assertTrue("private after going back", !reachable())
+
         action("uninstall") { m.uninstall(deleteModels = true) }
         assertTrue(m.ui.value.manifest!!.created.isEmpty())
         val rows = runBlocking { db.transcript().forServer("server-$id").first() }

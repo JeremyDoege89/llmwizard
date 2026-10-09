@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "note": "Shown to the user to copy into other apps. {{base}} is http://host:port, {{model}} a model name. Display only; never run on a target.",
+  "snippets": [
+    {
+      "id": "curl",
+      "title": "Test with curl",
+      "text": "curl {{base}}/v1/chat/completions \\\n  -H 'Content-Type: application/json' -H 'Authorization: Bearer ollama' \\\n  -d '{\"model\":\"{{model}}\",\"messages\":[{\"role\":\"user\",\"content\":\"Hello\"}]}'"
+    },
+    {
+      "id": "openwebui",
+      "title": "Open WebUI",
+      "text": "Admin Settings > Connections > Ollama API:\n{{base}}\n(or set OLLAMA_BASE_URL={{base}} when starting the container)"
+    },
+    {
+      "id": "continue",
+      "title": "Continue (VS Code / JetBrains)",
+      "text": "models:\n  - name: {{model}}\n    provider: ollama\n    model: {{model}}\n    apiBase: {{base}}"
+    },
+    {
+      "id": "homeassistant",
+      "title": "Home Assistant",
+      "text": "Settings > Devices & services > Add integration > Ollama\nURL: {{base}}\nModel: {{model}}"
+    },
+    {
+      "id": "n8n",
+      "title": "n8n",
+      "text": "Credentials > New > Ollama API\nBase URL: {{base}}"
+    },
+    {
+      "id": "openai",
+      "title": "Any OpenAI-compatible app",
+      "text": "Base URL: {{base}}/v1\nAPI key: ollama (any non-empty value)\nModel: {{model}}"
+    }
+  ]
+}

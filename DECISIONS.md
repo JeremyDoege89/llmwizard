@@ -175,3 +175,23 @@ Two bugs only showed up on the phone: `:core` called the transcript/resume store
 thread (Room forbids the main thread), and a regex with an unescaped `}}` that the JVM accepts but
 Android's ICU engine rejects. Both fixed in `:core`. Lesson: anything in `:core` that touches a store
 hops to the IO dispatcher itself, and new regexes escape braces.
+
+## 2026-10-10: Exposure (Phase 4)
+
+- Exposure is read without sudo: interfaces from the scan, ufw state from `/etc/ufw/ufw.conf`
+  (`ENABLED=yes`), the bind from llmwizard's settings. Listing ufw's rules would need root and is
+  not needed to decide anything.
+- Addresses are classed loopback / private (RFC 1918) / CGNAT (100.64/10, which is Tailscale's
+  range) / link-local / public. "Every network" (0.0.0.0) is refused when any interface has a
+  public address; CGNAT addresses are not offered as LAN binds.
+- With ufw active, `expose-lan` adds `ufw allow from <that network> to any port 11434 proto tcp
+  comment llmwizard`; `expose-private` and uninstall delete it. Without a firewall nothing is
+  enabled (fence) and the screen says plainly that anything on the network can connect.
+- Verified on both containers: before sharing the port is closed from this VM; after sharing this
+  VM lists models over `/v1/models`; after "go back to private" it is closed again and the ufw
+  rule is gone.
+- Snippets for other apps are data (`catalog/snippets.json`), display only, never run anywhere.
+- QR codes: zxing core 3.5.4 (no runtime dependencies, no network code).
+- Not built: the Tailscale wizard (needs Pro and an interactive login) and the phone-side check
+  over mobile data (it needs the server's public address, which only a third-party "what is my
+  IP" service would give; that conflicts with the no-other-traffic fence, so it needs Jay's call).

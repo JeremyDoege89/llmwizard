@@ -1,6 +1,6 @@
 # Build plan: your own AI, set up and run from your phone
 
-Status: Phases 0 and 1 built and checked against LXD stand-ins for the test VMs (2026-10-10, overnight run); gates not yet walked with Jay. See NIGHT-LOG.md. Phase 2 built (on-phone gate runs still to do), Phase 3 built and checked through the ViewModels against wiz-debian. (Keep this line current.)
+Status: Phases 0 and 1 built and checked against LXD stand-ins for the test VMs (2026-10-10, overnight run); gates not yet walked with Jay. See NIGHT-LOG.md. Phase 2 built (on-phone gate runs still to do), Phase 3 built and checked through the ViewModels against wiz-debian. Phase 4 built except Tailscale and the phone-side exposure probe. (Keep this line current.)
 
 Codename `llmwizard` until Jay names it. Written 2026-10-09 and revised the same day to fold in Jay's `CODE-PLAN.md` and the assistant half. `CODE-PLAN.md` is retired. Section 12 says where each part of it went.
 
@@ -625,11 +625,11 @@ Gate: Jay uses the app as his only way to run his own server for a week and keep
 
 ### Phase 4: connect other apps (about a week and a half)
 
-- [ ] Exposure state reader: bind address, interface addresses, public address check, firewall state, Tailscale presence
-- [ ] Connect screen: URLs, copy, QR code, snippets
-- [ ] `expose-lan` and `expose-private` recipes with the guardrails in 5.9
-- [ ] Tailscale wizard (Pro)
-- [ ] Exposure check from the server and from the phone
+- [x] Exposure state reader: bind address, interface addresses, public address check, firewall state, Tailscale presence
+- [x] Connect screen: URLs, copy, QR code, snippets
+- [x] `expose-lan` and `expose-private` recipes with the guardrails in 5.9
+- [ ] Tailscale wizard (Pro). Not started: needs Pro (Phase 5) and an interactive `tailscale up` login; the app only detects Tailscale for now.
+- [ ] Exposure check from the server and from the phone. Server side done (bind, firewall, public addresses, warnings); the phone-side probe over mobile data is not built.
 
 Gate: with home network mode on, another device on the LAN uses the endpoint with a snippet copied from the app. "Go back to private" restores 127.0.0.1 and removes the firewall rule. A fixture with a public address makes the app refuse the wide bind.
 

@@ -81,6 +81,8 @@ dependencies {
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
     implementation(libs.datastore.preferences)
+    // QR codes for the connect screen. Pure Java, no network code.
+    implementation(libs.zxing.core)
 
     // Screenshot tests: screens rendered to PNG on the JVM (Robolectric + Roborazzi).
     testImplementation(libs.junit4)

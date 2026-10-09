@@ -42,6 +42,7 @@ data class ManageUi(
     val recommendedTags: List<String> = emptyList(),
     val action: ActionUi? = null,
     val passwordPrompt: PasswordKind? = null,
+    val exposure: dev.dreamz.llmwizard.core.exposure.ExposureState? = null,
 )
 
 /**
@@ -144,6 +145,35 @@ class ManageViewModel @Inject constructor(handle: SavedStateHandle, private val 
     fun configure(contextLength: Int, keepAlive: String) =
         run("ollama-configure", mapOf("contextLength" to contextLength.toString(), "keepAlive" to keepAlive) + bindParam(), root = true)
 
+    /** Reads interfaces and firewall state (a read-only scan) for the sharing section. */
+    fun loadExposure() = withServer("Checking networks and firewall…") { srv ->
+        val (_, profile) = srv.scan()
+        val m = srv.manifest()
+        _ui.update { it.copy(manifest = m, exposure = dev.dreamz.llmwizard.core.exposure.Exposure.state(profile, m?.settings?.get("settings.bind"))) }
+    }
+
+    private fun keepSettings() = mapOf(
+        "contextLength" to (_ui.value.manifest?.settings?.get("settings.contextLength") ?: "8192"),
+        "keepAlive" to (_ui.value.manifest?.settings?.get("settings.keepAlive") ?: "30m"),
+    )
+
+    fun expose(option: dev.dreamz.llmwizard.core.exposure.BindOption) {
+        if (!option.allowed) return
+        val cidr = option.firewallCidr
+        val fw: Map<String, String> = if (_ui.value.exposure?.ufwActive == true && cidr != null) mapOf("firewallCidr" to cidr) else emptyMap()
+        run("expose-lan", keepSettings() + mapOf("bind" to option.bind) + fw, root = true, after = { loadExposureNow(it) })
+    }
+
+    fun goPrivate() {
+        val fw = _ui.value.manifest?.names("ufw")?.firstOrNull()?.let { mapOf("firewallCidr" to it) } ?: emptyMap()
+        run("expose-private", keepSettings() + fw, root = true, after = { loadExposureNow(it) })
+    }
+
+    private suspend fun loadExposureNow(srv: Server) {
+        val (_, profile) = srv.scan()
+        _ui.update { it.copy(exposure = dev.dreamz.llmwizard.core.exposure.Exposure.state(profile, it.manifest?.settings?.get("settings.bind"))) }
+    }
+
     fun update() = run("ollama-update", mapOf("prefix" to (_ui.value.manifest?.settings?.get("ollama.prefix") ?: "/usr/local")), root = true)
     fun addSudoRule() = run("sudoers-dropin", emptyMap(), root = true)
     fun uninstall(deleteModels: Boolean) = run("ollama-uninstall", mapOf("deleteModels" to if (deleteModels) "yes" else "no"), root = true)
@@ -151,13 +181,14 @@ class ManageViewModel @Inject constructor(handle: SavedStateHandle, private val 
     private fun bindParam(): Map<String, String> = _ui.value.manifest?.settings?.get("settings.bind")?.let { mapOf("bind" to it) } ?: emptyMap()
 
     /** Runs a recipe, asking for the sudo password when it needs root and the server needs one. */
-    private fun run(recipeId: String, params: Map<String, String>, root: Boolean) = withServer("Starting…") { srv -> runWith(srv, recipeId, params, root, null) }
+    private fun run(recipeId: String, params: Map<String, String>, root: Boolean, after: (suspend (Server) -> Unit)? = null) =
+        withServer("Starting…") { srv -> runWith(srv, recipeId, params, root, null, after) }
 
-    private suspend fun runWith(srv: Server, recipeId: String, params: Map<String, String>, root: Boolean, sudo: CharArray?) {
+    private suspend fun runWith(srv: Server, recipeId: String, params: Map<String, String>, root: Boolean, sudo: CharArray?, after: (suspend (Server) -> Unit)? = null) {
         val privilege = if (!root) null else try {
             srv.privilege { sudo }
         } catch (e: PrivilegeProblem.PasswordNeeded) {
-            pending = { pw -> try { runWith(srv, recipeId, params, root, pw) } catch (e: Exception) { _ui.update { it.copy(problem = describe(e)) } } }
+            pending = { pw -> try { runWith(srv, recipeId, params, root, pw, after) } catch (e: Exception) { _ui.update { it.copy(problem = describe(e)) } } }
             _ui.update { it.copy(passwordPrompt = PasswordKind.SUDO) }
             return
         }
@@ -183,6 +214,7 @@ class ManageViewModel @Inject constructor(handle: SavedStateHandle, private val 
                 val c = srv.ollama(srv.ollamaEndpoint(_ui.value.manifest))
                 try { _ui.update { it.copy(models = c.tags(), loaded = c.ps()) } } finally { c.close() }
             } else _ui.update { it.copy(models = emptyList(), loaded = emptyList()) }
+            if (r?.ok == true) after?.invoke(srv)
         } finally {
             (privilege as? Privilege.SudoPassword)?.wipe()
         }

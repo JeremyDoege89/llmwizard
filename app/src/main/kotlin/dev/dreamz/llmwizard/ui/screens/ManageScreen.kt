@@ -108,6 +108,8 @@ fun ManageScreen(ui: ManageUi, vm: ManageViewModel?, onBack: () -> Unit) {
                 Button({ vm?.pull(pullTag); pullTag = "" }, enabled = pullTag.isNotBlank()) { Text("Download") }
             }
 
+            ConnectSection(ui.exposure, ui.models.firstOrNull()?.name, { vm?.loadExposure() }, { vm?.expose(it) }, { vm?.goPrivate() })
+
             var ctx by remember(ui.manifest) { mutableStateOf(ui.manifest?.settings?.get("settings.contextLength") ?: "8192") }
             var keep by remember(ui.manifest) { mutableStateOf(ui.manifest?.settings?.get("settings.keepAlive") ?: "30m") }
             SectionCard("Settings") {

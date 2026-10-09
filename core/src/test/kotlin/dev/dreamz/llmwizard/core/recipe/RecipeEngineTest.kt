@@ -171,7 +171,7 @@ class RecipeEngineTest {
             val r = Recipe.bundled(id)
             val e = engine(FakeOps())
             val given = r.params.filter { it.value.required }.mapValues { (_, spec) ->
-                when (spec.type) { ParamType.TAG -> "qwen3:0.6b"; ParamType.ENUM -> spec.values!!.first(); else -> "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ test@x" }
+                when (spec.type) { ParamType.TAG -> "qwen3:0.6b"; ParamType.ENUM -> spec.values!!.first(); ParamType.CIDR -> "192.168.1.0/24"; else -> "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ test@x" }
             }
             val values = e.resolve(r, given)
             val block = e.paramBlock(values)

@@ -40,6 +40,8 @@ import dev.dreamz.llmwizard.ui.screens.HomeScreen
 import dev.dreamz.llmwizard.ui.screens.SetupScreen
 import dev.dreamz.llmwizard.ui.theme.LlmWizardTheme
 import org.junit.Rule
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -129,5 +131,18 @@ class ScreenshotTest {
                 LocalModel("qwen3:0.6b", size = 522_653_277, details = ModelDetails(parameterSize = "751.63M", quantizationLevel = "Q4_K_M"))),
             loaded = listOf(RunningModel("qwen3.6:35b-a3b")),
             recommendedTags = listOf("gpt-oss:120b", "qwen3.6:35b-a3b", "gemma4:26b-a4b")), null) {}
+    }
+
+    @Test fun shared() = shot("17-shared-lan") {
+        val p = profile("dl380p-hyperv-ubuntu2404")
+        androidx.compose.foundation.layout.Column(androidx.compose.ui.Modifier.padding(16.dp)) {
+            dev.dreamz.llmwizard.ui.screens.ConnectSection(dev.dreamz.llmwizard.core.exposure.Exposure.state(p, "192.168.1.161:11434"), "qwen3.6:35b-a3b", {}, {}, {})
+        }
+    }
+    @Test fun shareChoices() = shot("18-share-choices-public") {
+        val p = profile("synthetic-public-address")
+        androidx.compose.foundation.layout.Column(androidx.compose.ui.Modifier.padding(16.dp)) {
+            dev.dreamz.llmwizard.ui.screens.ConnectSection(dev.dreamz.llmwizard.core.exposure.Exposure.state(p, null), "qwen3.6:35b-a3b", {}, {}, {})
+        }
     }
 }
