@@ -187,10 +187,14 @@ class SetupViewModel @Inject constructor(
 
     private fun recommend(p: HardwareProfile, i: Intent) {
         val r = recommender.recommend(p, i)
-        _ui.update { it.copy(recommendation = r, chosenTag = it.chosenTag?.takeIf { t -> r.candidates.any { c -> c.entry.ollamaTag == t && c.fits } } ?: r.pick?.candidate?.entry?.ollamaTag) }
+        _ui.update { it.copy(recommendation = r, chosenTag = (it.chosenTag ?: it.server?.model)?.takeIf { t -> r.candidates.any { c -> c.entry.ollamaTag == t && c.fits } } ?: r.pick?.candidate?.entry?.ollamaTag) }
     }
 
-    fun choose(tag: String) = _ui.update { it.copy(chosenTag = tag) }
+    fun choose(tag: String) {
+        _ui.update { it.copy(chosenTag = tag) }
+        // Remembered so a restarted app offers the same model.
+        _ui.value.server?.let { s -> viewModelScope.launch { servers.db.servers().upsert(s.copy(model = tag).also { n -> _ui.update { it.copy(server = n) } }) } }
+    }
 
     /** Preflight and plan: shows every step and its script; runs nothing that changes the machine. */
     fun preparePlan() = withServer("Checking the server…") { srv ->

@@ -138,6 +138,15 @@ fun AddServerRoute(vm: AddServerViewModel, onBack: () -> Unit, onDone: (Long) ->
     LaunchedEffect(ui.doneServerId) { ui.doneServerId?.let(onDone) }
     AddServerScreen(ui, onBack, { n, h, p, u, pw -> vm.connect(n, h, p, u, pw) }, vm::dismissProblem)
     ui.hostKeyPrompt?.let { HostKeyDialog("the server", it, vm::acceptHostKey, vm::rejectHostKey) }
+    if (ui.offerKey) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { vm.installKey(false) },
+            title = { Text("Log in with this phone's key?") },
+            text = { Text("The app can add its own SSH key to ~/.ssh/authorized_keys on the server, using the password you just typed one last time. After that it never needs your password to log in. The command is recorded in this server's transcript.") },
+            confirmButton = { TextButton({ vm.installKey(true) }) { Text("Add the key") } },
+            dismissButton = { TextButton({ vm.installKey(false) }) { Text("Not now") } },
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

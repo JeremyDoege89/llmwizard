@@ -46,6 +46,8 @@ data class AddServerUi(
     val problem: Problem? = null,
     val hostKeyPrompt: dev.dreamz.llmwizard.core.ssh.KnownHost? = null,
     val doneServerId: Long? = null,
+    /** Connected with a password: ask whether to install the app's key while the password is still at hand. */
+    val offerKey: Boolean = false,
 )
 
 /**
@@ -80,8 +82,14 @@ class AddServerViewModel @Inject constructor(private val servers: Servers) : Vie
     private suspend fun tryOpen(s: ServerEntity, password: CharArray) {
         try {
             servers.open(s, password)
-            password.fill('\u0000')
-            _ui.update { it.copy(busy = false, doneServerId = s.id) }
+            if (s.authType == AuthType.PASSWORD) {
+                // Held only until the user answers the key question below.
+                keyCandidate = s to password
+                _ui.update { it.copy(busy = false, offerKey = true) }
+            } else {
+                password.fill('\u0000')
+                _ui.update { it.copy(busy = false, doneServerId = s.id) }
+            }
         } catch (e: SshError.HostKeyUnknown) {
             pending = s to password
             pendingError = e
@@ -110,6 +118,34 @@ class AddServerViewModel @Inject constructor(private val servers: Servers) : Vie
     }
 
     fun dismissProblem() = _ui.update { it.copy(problem = null) }
+
+    private var keyCandidate: Pair<ServerEntity, CharArray>? = null
+
+    /** Adds the app's key with the authorized-key-add recipe (password used one last time), then switches to key logins. */
+    fun installKey(accept: Boolean) {
+        val (s, pw) = keyCandidate ?: return
+        keyCandidate = null
+        _ui.update { it.copy(offerKey = false, busy = accept) }
+        viewModelScope.launch {
+            try {
+                if (accept) {
+                    val srv = servers.open(s, pw)
+                    val pub = withContext(Dispatchers.IO) { servers.vault.ensureKey() }
+                    val out = srv.runRecipe(dev.dreamz.llmwizard.core.recipe.Recipe.bundled("authorized-key-add"), mapOf("publicKey" to pub), null,
+                        approve = { _, _ -> true }, events = {})
+                    if (out.result?.ok == true) {
+                        servers.db.servers().upsert(s.copy(authType = AuthType.KEY))
+                        servers.drop(s.id)
+                    }
+                }
+                _ui.update { it.copy(busy = false, doneServerId = s.id) }
+            } catch (e: Exception) {
+                _ui.update { it.copy(busy = false, problem = describe(e), doneServerId = s.id) }
+            } finally {
+                pw.fill('\u0000')
+            }
+        }
+    }
 }
 
 /** "What could my machine run?" with no server: a typed description goes through the same recommender. */

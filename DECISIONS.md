@@ -153,3 +153,25 @@ Not yet measured: APK size impact of keeping all of BouncyCastle (release APK is
 rule can be narrowed later by testing which classes the provider needs.
 
 **Decision:** keep sshj. No need for the ConnectBot sshlib or JSch fallbacks.
+
+## 2026-10-10: First eval numbers (measured on the DL380p, LXD container, CPU only)
+
+`cli eval-tools` on the first 50 commands, eval clock fixed at 2026-10-09 10:00:
+
+| Model | Right | Median time per command | Notes |
+|---|---|---|---|
+| qwen3:0.6b | 19/50 (38%) | 1.4 s | Often answers in words or writes the call as text; clock_set 0/12 |
+| qwen3.6:35b-a3b | 45/50 (90%) | 28.7 s (p90 36.8 s) | All 5 misses: relational names ("mom", "dad", "the dentist") where it called contacts_find first |
+
+Recorded as `toolAccuracy` in the catalog. Speed of the same MoE: 8.5 tok/s generation (estimate was 10-13, within the plan's 5-10 prediction). The 28 s per command is mostly prompt processing of the system prompt and tool list on a CPU; PLAN.md 5.14's latency work (prefix reuse, keep_alive, shorter tool descriptions) is where this needs to go before release 2.
+
+Tool names use underscores (`sms_send`) rather than the plan's dots (`sms.send`): some chat templates and small models handle dotted function names badly. **(Jay: please confirm)**
+
+Small models sometimes write a tool call as text instead of using Ollama's `tool_calls`. `TextToolCall` accepts exactly one `{"name", "arguments"}` JSON object from the text; it still goes through the validator and, for sends, the card.
+
+## 2026-10-10: Android regex and main-thread findings
+
+Two bugs only showed up on the phone: `:core` called the transcript/resume stores on the caller's
+thread (Room forbids the main thread), and a regex with an unescaped `}}` that the JVM accepts but
+Android's ICU engine rejects. Both fixed in `:core`. Lesson: anything in `:core` that touches a store
+hops to the IO dispatcher itself, and new regexes escape braces.

@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.roborazzi)
 }
 
 android {
@@ -33,6 +34,8 @@ android {
     }
 
     buildFeatures { compose = true }
+
+    testOptions { unitTests { isIncludeAndroidResources = true } }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -69,4 +72,13 @@ dependencies {
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
     implementation(libs.datastore.preferences)
+
+    // Screenshot tests: screens rendered to PNG on the JVM (Robolectric + Roborazzi).
+    testImplementation(libs.junit4)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+    testImplementation(platform(libs.compose.bom))
+    testImplementation(libs.compose.ui.test.junit4)
+    debugImplementation(libs.compose.ui.test.manifest)
 }

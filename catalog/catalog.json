@@ -168,7 +168,7 @@
       "quality": 1,
       "supportsTools": true,
       "minOllamaVersion": "0.0.0",
-      "toolAccuracy": null,
+      "toolAccuracy": 0.38,
       "notes": "The smallest model offered. Runs on almost anything; good for trying things out, not for hard questions."
     },
     {
@@ -440,7 +440,7 @@
       "quality": 4,
       "supportsTools": true,
       "minOllamaVersion": "0.0.0",
-      "toolAccuracy": null,
+      "toolAccuracy": 0.9,
       "notes": "Mixture-of-experts: only about 3B parameters are active per token, so it runs far faster on CPUs than its size suggests."
     },
     {
