@@ -58,6 +58,7 @@ class Commands(private val args: List<String>) {
         "uninstall" -> uninstall()
         "transcript" -> transcript()
         "agent" -> agent()
+        "catalog-check" -> catalogCheck()
         "eval-tools" -> evalTools()
         null, "help", "-h", "--help" -> { usage(); 0 }
         else -> throw CliError("unknown command '$cmd' (try help)")
@@ -88,6 +89,7 @@ class Commands(private val args: List<String>) {
           uninstall <target> [--delete-models] [--yes]
                                    remove what llmwizard installed (and only that)
           transcript <target>      every script sent to the target, with exit codes
+          catalog-check [--write]  resolve every catalog tag on registry.ollama.ai; --write updates sizes
           agent <target> "<request>" [--model <tag>]
                                    print the tool proposal the server model makes; executes nothing
           eval-tools <target> --model <tag> [--limit n]
@@ -389,6 +391,22 @@ class Commands(private val args: List<String>) {
             }
         }
         return simpleRecipe("ollama-uninstall", mapOf("deleteModels" to if (deleteModels) "yes" else "no"))
+    }
+
+    private suspend fun catalogCheck(): Int {
+        val file = File("catalog/catalog.json")
+        val cat = Catalog.parse(file.readText())
+        val check = dev.dreamz.llmwizard.core.catalog.CatalogCheck()
+        val rows = check.check(cat)
+        rows.forEach { r -> println("%-24s %s %s".format(r.entry.ollamaTag, if (r.resolved) "ok " else "BAD", r.problem ?: "")) }
+        val bad = rows.count { !it.resolved }
+        if (flag("--write") && rows.any { it.problem?.startsWith("size changed") == true }) {
+            val pretty = Json { prettyPrint = true; encodeDefaults = true }
+            file.writeText(pretty.encodeToString(Catalog.serializer(), check.updated(cat, rows)) + "\n")
+            println("catalog.json sizes updated")
+        }
+        println(if (bad == 0) "All ${rows.size} tags resolve." else "$bad tag(s) do not resolve.")
+        return if (bad == 0) 0 else 1
     }
 
     private suspend fun agent(): Int {

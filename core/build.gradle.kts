@@ -26,6 +26,8 @@ tasks.test {
     useJUnitPlatform()
     // Fixtures, recipes and the catalog live at the repo root, shared with the app.
     systemProperty("llmwizard.root", rootProject.projectDir.absolutePath)
+    // ./gradlew :core:test -Pnetwork also runs the tests that call registry.ollama.ai.
+    if (project.hasProperty("network")) systemProperty("llmwizard.network", "true")
 }
 
 // The catalog and recipes live at the repo root as plain data (SPEC.md layout) and ship
