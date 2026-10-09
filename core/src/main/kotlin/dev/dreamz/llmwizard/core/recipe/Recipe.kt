@@ -32,7 +32,7 @@ data class Recipe(
             }.readBytes().toString(Charsets.UTF_8),
         )
 
-        val BUNDLED = listOf("ollama-install", "ollama-uninstall", "ollama-update", "ollama-configure", "authorized-key-add")
+        val BUNDLED = listOf("ollama-install", "ollama-uninstall", "ollama-update", "ollama-configure", "authorized-key-add", "model-pull")
     }
 }
 

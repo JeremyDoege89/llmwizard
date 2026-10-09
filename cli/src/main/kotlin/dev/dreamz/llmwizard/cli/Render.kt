@@ -1,5 +1,6 @@
 package dev.dreamz.llmwizard.cli
 
+import dev.dreamz.llmwizard.core.catalog.Recommendation
 import dev.dreamz.llmwizard.core.scan.HardwareProfile
 
 /** Plain-text views for the terminal. "?" marks unknown, never zero. */
@@ -20,4 +21,17 @@ object Render {
         val o = p.ollama
         append("Ollama:  ${if (o?.installed == true) "${o.version ?: "?"} at ${o.path}, service ${o.serviceActive ?: "?"}" else "not installed"}")
     }
+
+    fun recommendation(r: Recommendation): String = buildString {
+        r.bandwidthLabel?.let { appendLine("Memory speed guess: $it") }
+        appendLine("Pick:     ${r.pick?.reason ?: "none"}")
+        r.pick?.candidate?.let { appendLine("          ${it.entry.ollamaTag}, download ${gb(it.entry.downloadBytes)}") }
+        r.faster?.let { appendLine("Faster:   ${it.reason.removePrefix("Faster: ")}  [${it.candidate.entry.ollamaTag}]") }
+        r.smarter?.let { appendLine("Smarter:  ${it.reason.removePrefix("Smarter: ")}  [${it.candidate.entry.ollamaTag}]") }
+        r.notes.forEach { appendLine("Note:     $it") }
+    }.trimEnd()
+
+    /** Progress bars write carriage returns and ANSI codes; keep the last state of each line. */
+    fun cleanLog(s: String): String = s.replace(Regex("\u001B\\[[0-9;?]*[A-Za-z]"), "")
+        .lines().joinToString("\n") { it.substringAfterLast('\r') }
 }

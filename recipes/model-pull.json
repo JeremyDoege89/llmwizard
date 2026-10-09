@@ -1,0 +1,35 @@
+{
+  "id": "model-pull",
+  "version": 1,
+  "title": "Download a model",
+  "description": "Asks Ollama on the server to download a model. Runs in the background there, so it survives the phone disconnecting.",
+  "params": {
+    "model": {
+      "type": "tag",
+      "required": true,
+      "description": "The model to download, for example qwen3:4b."
+    },
+    "bind": {
+      "type": "bind",
+      "default": "127.0.0.1:11434"
+    }
+  },
+  "steps": [
+    {
+      "id": "pull",
+      "title": "Download the model",
+      "why": "Models are large; this runs in the background on the server.",
+      "skipIf": "case \"$P_bind\" in 0.0.0.0:*) api=\"127.0.0.1:${P_bind##*:}\";; *) api=\"$P_bind\";; esac\ncurl -fsS -m 10 \"http://$api/api/show\" -d \"{\\\"model\\\":\\\"$P_model\\\"}\" >/dev/null 2>&1",
+      "detached": true,
+      "timeoutSec": 86400,
+      "run": "case \"$P_bind\" in 0.0.0.0:*) api=\"127.0.0.1:${P_bind##*:}\";; *) api=\"$P_bind\";; esac\necho \"Downloading $P_model\"\ncurl -sS -N \"http://$api/api/pull\" -d \"{\\\"model\\\":\\\"$P_model\\\"}\" | awk '/\"error\"/ { print; err=1; next } { if (++n % 50 == 1 || /success/) print } END { exit err }'\n",
+      "verify": "case \"$P_bind\" in 0.0.0.0:*) api=\"127.0.0.1:${P_bind##*:}\";; *) api=\"$P_bind\";; esac\ncurl -fsS -m 10 \"http://$api/api/show\" -d \"{\\\"model\\\":\\\"$P_model\\\"}\" >/dev/null",
+      "creates": [
+        {
+          "kind": "model",
+          "name": "{{model}}"
+        }
+      ]
+    }
+  ]
+}
