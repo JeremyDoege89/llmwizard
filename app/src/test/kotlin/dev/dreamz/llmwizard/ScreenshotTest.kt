@@ -25,6 +25,16 @@ import dev.dreamz.llmwizard.ui.RunUi
 import dev.dreamz.llmwizard.ui.SetupUi
 import dev.dreamz.llmwizard.ui.StepStatus
 import dev.dreamz.llmwizard.ui.screens.AddServerScreen
+import dev.dreamz.llmwizard.ui.screens.ChatScreen
+import dev.dreamz.llmwizard.ui.screens.ManageScreen
+import dev.dreamz.llmwizard.ui.ChatUi
+import dev.dreamz.llmwizard.ui.ManageUi
+import dev.dreamz.llmwizard.ui.ReplyPhase
+import dev.dreamz.llmwizard.data.MessageEntity
+import dev.dreamz.llmwizard.core.server.ServerStatus
+import dev.dreamz.llmwizard.core.ollama.LocalModel
+import dev.dreamz.llmwizard.core.ollama.ModelDetails
+import dev.dreamz.llmwizard.core.ollama.RunningModel
 import dev.dreamz.llmwizard.ui.screens.FirstRunScreen
 import dev.dreamz.llmwizard.ui.screens.HomeScreen
 import dev.dreamz.llmwizard.ui.screens.SetupScreen
@@ -102,5 +112,22 @@ class ScreenshotTest {
     @Test fun measured() = shot("14-measured") {
         SetupScreen(setupUi("dl380p-hyperv-ubuntu2404").copy(server = server.copy(installState = "installed"),
             benchmark = BenchmarkResult("qwen3.6:35b-a3b", 8.5, 23.6, 41.0, 128, "2026-10-10T08:00:00Z"), estimateText = "comfortable, about 8.6–11 tokens/s (estimate)"), null, {}, {})
+    }
+
+    @Test fun chat() = shot("15-chat") {
+        val msgs = listOf(
+            MessageEntity(1, 1, "user", "How do I check which process is using port 11434?"),
+            MessageEntity(2, 1, "assistant", "Use **ss**, which ships with every modern distro:\n```\nsudo ss -ltnp | grep 11434\n```\nThe last column shows the program and its PID.", 8.5),
+            MessageEntity(3, 1, "user", "And without sudo?"),
+        )
+        ChatScreen(ChatUi(server = server, model = "qwen3.6:35b-a3b", conversationId = 1, phase = ReplyPhase.LOADING_MODEL), msgs, emptyList(), {}, {}, {}, {}, {}, {}, {})
+    }
+    @Test fun manage() = shot("16-manage") {
+        ManageScreen(ManageUi(server = server,
+            status = ServerStatus("active", "enabled", null, "127.0.0.1:11434", "0.40.2", 0.88, 40, 132_000_000_000, 108_000_000_000, 315_000_000_000, 524_000_000_000),
+            models = listOf(LocalModel("qwen3.6:35b-a3b", size = 22_621_314_161, details = ModelDetails(parameterSize = "35.5B", quantizationLevel = "Q4_K_M")),
+                LocalModel("qwen3:0.6b", size = 522_653_277, details = ModelDetails(parameterSize = "751.63M", quantizationLevel = "Q4_K_M"))),
+            loaded = listOf(RunningModel("qwen3.6:35b-a3b")),
+            recommendedTags = listOf("gpt-oss:120b", "qwen3.6:35b-a3b", "gemma4:26b-a4b")), null) {}
     }
 }

@@ -35,7 +35,16 @@ android {
 
     buildFeatures { compose = true }
 
-    testOptions { unitTests { isIncludeAndroidResources = true } }
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+            // ./gradlew :app:testDebugUnitTest -Ptarget=wiz-debian runs InstallFlowTest against that target.
+            all { t ->
+                project.findProperty("target")?.let { t.systemProperty("llmwizard.target", it.toString()) }
+                t.testLogging { showStandardStreams = true }
+            }
+        }
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

@@ -1,0 +1,28 @@
+{
+  "id": "service-control",
+  "version": 1,
+  "title": "Start, stop or restart Ollama",
+  "description": "Runs systemctl for the Ollama service. Stopping or restarting unloads any loaded model.",
+  "params": {
+    "action": {
+      "type": "enum",
+      "values": [
+        "start",
+        "stop",
+        "restart"
+      ],
+      "required": true,
+      "description": "What to do with the Ollama service."
+    }
+  },
+  "steps": [
+    {
+      "id": "systemctl",
+      "title": "Tell systemd to change the Ollama service",
+      "why": "Ollama runs as a system service.",
+      "sudo": true,
+      "run": "systemctl \"$P_action\" ollama\nsystemctl is-active ollama || true\n",
+      "verify": "case \"$P_action\" in stop) ! systemctl is-active --quiet ollama;; *) i=0; while [ $i -lt 20 ]; do systemctl is-active --quiet ollama && exit 0; i=$((i+1)); sleep 1; done; exit 1;; esac\n"
+    }
+  ]
+}

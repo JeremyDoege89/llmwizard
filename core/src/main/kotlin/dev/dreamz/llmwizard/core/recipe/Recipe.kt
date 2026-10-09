@@ -32,7 +32,7 @@ data class Recipe(
             }.readBytes().toString(Charsets.UTF_8),
         )
 
-        val BUNDLED = listOf("ollama-install", "ollama-uninstall", "ollama-update", "ollama-configure", "authorized-key-add", "model-pull")
+        val BUNDLED = listOf("ollama-install", "ollama-uninstall", "ollama-update", "ollama-configure", "authorized-key-add", "model-pull", "service-control", "service-control-nopw", "sudoers-dropin")
     }
 }
 
@@ -51,6 +51,8 @@ enum class ParamType {
     @SerialName("sshPublicKey") SSH_PUBLIC_KEY,
     @SerialName("bool") BOOL,
     @SerialName("ident") IDENT,
+    /** One of [ParamSpec.values]. */
+    @SerialName("enum") ENUM,
 }
 
 @Serializable
@@ -62,6 +64,7 @@ data class ParamSpec(
     val description: String = "",
     val min: Long? = null,
     val max: Long? = null,
+    val values: List<String>? = null,
 )
 
 @Serializable
@@ -118,6 +121,7 @@ object Params {
             ParamType.SSH_PUBLIC_KEY -> require(PUBKEY.matches(Shell.text(value))) { "Not an SSH public key line" }
             ParamType.BOOL -> require(value == "yes" || value == "no") { "Expected yes or no for $name" }
             ParamType.IDENT -> Shell.identifier(value)
+            ParamType.ENUM -> require(spec.values?.contains(value) == true) { "$name must be one of ${spec.values}" }
         }
         return value
     }

@@ -1,0 +1,27 @@
+{
+  "id": "service-control-nopw",
+  "version": 1,
+  "title": "Start, stop or restart Ollama (no password)",
+  "description": "The same as service-control, using the sudo rule llmwizard added so these three commands need no password.",
+  "params": {
+    "action": {
+      "type": "enum",
+      "values": [
+        "start",
+        "stop",
+        "restart"
+      ],
+      "required": true,
+      "description": "What to do with the Ollama service."
+    }
+  },
+  "steps": [
+    {
+      "id": "systemctl",
+      "title": "Tell systemd to change the Ollama service",
+      "why": "Allowed without a password by /etc/sudoers.d/llmwizard-ollama.",
+      "run": "sudo -n /usr/bin/systemctl \"$P_action\" ollama\nsystemctl is-active ollama || true\n",
+      "verify": "case \"$P_action\" in stop) ! systemctl is-active --quiet ollama;; *) i=0; while [ $i -lt 20 ]; do systemctl is-active --quiet ollama && exit 0; i=$((i+1)); sleep 1; done; exit 1;; esac\n"
+    }
+  ]
+}

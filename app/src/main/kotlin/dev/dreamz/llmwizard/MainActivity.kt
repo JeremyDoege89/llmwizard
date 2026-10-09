@@ -17,6 +17,8 @@ import androidx.navigation.navArgument
 import dagger.hilt.android.AndroidEntryPoint
 import dev.dreamz.llmwizard.ui.HomeViewModel
 import dev.dreamz.llmwizard.ui.screens.AddServerRoute
+import dev.dreamz.llmwizard.ui.screens.ChatRoute
+import dev.dreamz.llmwizard.ui.screens.ManageRoute
 import dev.dreamz.llmwizard.ui.screens.FirstRunScreen
 import dev.dreamz.llmwizard.ui.screens.HomeScreen
 import dev.dreamz.llmwizard.ui.screens.KeyRoute
@@ -51,9 +53,12 @@ private fun AppNav() {
             AddServerRoute(hiltViewModel(), onBack = { nav.popBackStack() }) { id -> nav.navigate("server/$id") { popUpTo("home") } }
         }
         composable("server/{id}", arguments = listOf(navArgument("id") { type = NavType.LongType })) {
-            SetupRoute(hiltViewModel(), onBack = { nav.popBackStack() }, onTranscript = { nav.navigate("transcript/$it") })
+            SetupRoute(hiltViewModel(), onBack = { nav.popBackStack() }, onTranscript = { nav.navigate("transcript/$it") },
+                onChat = { nav.navigate("chat/$it") }, onManage = { nav.navigate("manage/$it") })
         }
         composable("transcript/{id}", arguments = listOf(navArgument("id") { type = NavType.LongType })) { TranscriptRoute(hiltViewModel()) { nav.popBackStack() } }
+        composable("chat/{id}", arguments = listOf(navArgument("id") { type = NavType.LongType })) { ChatRoute(hiltViewModel()) { nav.popBackStack() } }
+        composable("manage/{id}", arguments = listOf(navArgument("id") { type = NavType.LongType })) { ManageRoute(hiltViewModel()) { nav.popBackStack() } }
         composable("manual") { ManualRoute(hiltViewModel()) { nav.popBackStack() } }
         composable("key") { KeyRoute(hiltViewModel()) { nav.popBackStack() } }
     }

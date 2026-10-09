@@ -46,6 +46,12 @@ class Server(
         return r.out to ScanParser.parse(r.out)
     }
 
+    /** Service state, version, load, memory, disk and recent log, read-only (status.sh). */
+    suspend fun status(): ServerStatus {
+        val r = remote.probe(StatusProbe.script, 60.seconds)
+        return StatusProbe.parse(r.out)
+    }
+
     suspend fun manifest(): Manifest? =
         remote.readFile(remote.stateDir() + "/installed.json")?.let { runCatching { Manifest.decode(it) }.getOrNull() }
 

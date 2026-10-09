@@ -1,0 +1,24 @@
+{
+  "id": "sudoers-dropin",
+  "version": 1,
+  "title": "Let the app control Ollama without your password",
+  "description": "Optional. Adds a sudo rule that lets your user start, stop and restart the Ollama service and read its log without typing a password. Nothing else.",
+  "steps": [
+    {
+      "id": "dropin",
+      "title": "Add /etc/sudoers.d/llmwizard-ollama",
+      "why": "Checked with visudo before it is put in place, because a broken sudoers file locks everyone out of sudo.",
+      "sudo": true,
+      "skipIf": "[ -f /etc/sudoers.d/llmwizard-ollama ]",
+      "run": "tmp=$(mktemp)\nprintf '%s\\n' \\\n    '# Added by llmwizard. Remove this file to undo.' \\\n    \"$P_USER ALL=(root) NOPASSWD: /usr/bin/systemctl start ollama, /usr/bin/systemctl stop ollama, /usr/bin/systemctl restart ollama, /usr/bin/journalctl -u ollama *\" > \"$tmp\"\nvisudo -cf \"$tmp\"\ninstall -o0 -g0 -m440 \"$tmp\" /etc/sudoers.d/llmwizard-ollama\nrm -f \"$tmp\"\n",
+      "verify": "sudo -n -l /usr/bin/systemctl restart ollama >/dev/null 2>&1",
+      "undo": "rm -f /etc/sudoers.d/llmwizard-ollama\n",
+      "creates": [
+        {
+          "kind": "file",
+          "name": "/etc/sudoers.d/llmwizard-ollama"
+        }
+      ]
+    }
+  ]
+}

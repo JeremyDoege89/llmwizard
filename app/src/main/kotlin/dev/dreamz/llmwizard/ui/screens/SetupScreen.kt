@@ -68,14 +68,14 @@ import dev.dreamz.llmwizard.ui.StepStatus
 import dev.dreamz.llmwizard.ui.VerdictRow
 
 @Composable
-fun SetupRoute(vm: SetupViewModel, onBack: () -> Unit, onTranscript: (Long) -> Unit) {
+fun SetupRoute(vm: SetupViewModel, onBack: () -> Unit, onTranscript: (Long) -> Unit, onChat: (Long) -> Unit = {}, onManage: (Long) -> Unit = {}) {
     val ui by vm.ui.collectAsState()
-    SetupScreen(ui, vm, onBack, onTranscript)
+    SetupScreen(ui, vm, onBack, onTranscript, onChat, onManage)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SetupScreen(ui: SetupUi, vm: SetupViewModel?, onBack: () -> Unit, onTranscript: (Long) -> Unit) {
+fun SetupScreen(ui: SetupUi, vm: SetupViewModel?, onBack: () -> Unit, onTranscript: (Long) -> Unit, onChat: (Long) -> Unit = {}, onManage: (Long) -> Unit = {}) {
     val s = ui.server
     Scaffold(topBar = {
         TopAppBar(
@@ -87,7 +87,7 @@ fun SetupScreen(ui: SetupUi, vm: SetupViewModel?, onBack: () -> Unit, onTranscri
         when {
             ui.run != null -> RunView(ui.run, ui, vm, Modifier.padding(pad))
             ui.plan != null -> PlanView(ui.plan, ui.preflightFailures, vm, Modifier.padding(pad))
-            else -> Overview(ui, vm, Modifier.padding(pad))
+            else -> Overview(ui, vm, Modifier.padding(pad), onChat, onManage)
         }
     }
     ui.hostKeyPrompt?.let { k -> HostKeyDialog(s?.host ?: "", k, { vm?.acceptHostKey() }, { vm?.rejectHostKey() }) }
@@ -108,11 +108,20 @@ fun SetupScreen(ui: SetupUi, vm: SetupViewModel?, onBack: () -> Unit, onTranscri
 }
 
 @Composable
-private fun Overview(ui: SetupUi, vm: SetupViewModel?, modifier: Modifier) {
+private fun Overview(ui: SetupUi, vm: SetupViewModel?, modifier: Modifier, onChat: (Long) -> Unit = {}, onManage: (Long) -> Unit = {}) {
     var showScript by remember { mutableStateOf(false) }
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         ui.busy?.let { Busy(it) }
         ui.problem?.let { ProblemCard(it) { vm?.dismissProblem() } }
+        ui.server?.takeIf { it.installState == "installed" }?.let { s ->
+            SectionCard("Ready") {
+                Text("Ollama is installed${s.model?.let { m -> " with $m" } ?: ""}.")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button({ onChat(s.id) }) { Text("Chat") }
+                    OutlinedButton({ onManage(s.id) }) { Text("Manage server") }
+                }
+            }
+        }
         if (ui.resumable) {
             SectionCard("An install was in progress") {
                 Text("Something was still running on the server when the app last closed. Steps already done are skipped, and a download still running is picked up where it is.")

@@ -1,5 +1,6 @@
 package dev.dreamz.llmwizard.data
 
+import androidx.room.AutoMigration
 import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Entity
@@ -92,8 +93,48 @@ interface BenchmarkDao {
     @Query("SELECT * FROM benchmarks WHERE serverId = :id ORDER BY id DESC") fun forServer(id: Long): Flow<List<BenchmarkRow>>
 }
 
-@Database(entities = [ServerEntity::class, JobEntity::class, TranscriptRow::class, BenchmarkRow::class], version = 1, exportSchema = true)
+@Entity(tableName = "conversations", indices = [Index("serverId")])
+data class ConversationEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val serverId: Long,
+    val model: String,
+    val title: String,
+    val updatedAt: Long = System.currentTimeMillis(),
+)
+
+@Entity(tableName = "messages", indices = [Index("conversationId")])
+data class MessageEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val conversationId: Long,
+    /** "user" or "assistant". */
+    val role: String,
+    val content: String,
+    /** Measured by Ollama for this reply; null for the user's messages or a stopped reply. */
+    val tokensPerSecond: Double? = null,
+    val createdAt: Long = System.currentTimeMillis(),
+)
+
+@Dao
+interface ChatDao {
+    @Query("SELECT * FROM conversations WHERE serverId = :serverId ORDER BY updatedAt DESC") fun conversations(serverId: Long): Flow<List<ConversationEntity>>
+    @Query("SELECT * FROM conversations WHERE id = :id") suspend fun conversation(id: Long): ConversationEntity?
+    @Insert suspend fun insert(c: ConversationEntity): Long
+    @Upsert suspend fun upsert(c: ConversationEntity)
+    @Query("DELETE FROM conversations WHERE id = :id") suspend fun deleteConversation(id: Long)
+    @Query("DELETE FROM messages WHERE conversationId = :id") suspend fun deleteMessages(id: Long)
+    @Query("SELECT * FROM messages WHERE conversationId = :id ORDER BY id") fun messages(id: Long): Flow<List<MessageEntity>>
+    @Query("SELECT * FROM messages WHERE conversationId = :id ORDER BY id") suspend fun messagesOnce(id: Long): List<MessageEntity>
+    @Insert suspend fun insert(m: MessageEntity): Long
+}
+
+@Database(
+    entities = [ServerEntity::class, JobEntity::class, TranscriptRow::class, BenchmarkRow::class, ConversationEntity::class, MessageEntity::class],
+    version = 2,
+    exportSchema = true,
+    autoMigrations = [AutoMigration(from = 1, to = 2)],
+)
 abstract class AppDb : RoomDatabase() {
+    abstract fun chat(): ChatDao
     abstract fun servers(): ServerDao
     abstract fun jobs(): JobDao
     abstract fun transcript(): TranscriptDao

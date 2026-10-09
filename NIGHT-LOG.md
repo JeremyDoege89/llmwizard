@@ -86,3 +86,20 @@ landscape, since it looked like it was being picked up.
 3. The phone has the debug app installed (`dev.dreamz.llmwizard`) and an `adb reverse tcp:2222`.
    Uninstall with `adb uninstall dev.dreamz.llmwizard` if you want it gone.
 4. Nothing is pushed to GitHub. The repo is local at `~/llmwizard` (commits authored as you).
+
+## Continued (2026-10-10, daytime)
+
+- **In-app install proven end to end** without the phone's screen: `InstallFlowTest` drives the
+  real `SetupViewModel`, Room and SSH against wiz-debian (password login, host key trust, scan,
+  choose qwen3:0.6b, install, benchmark: 47.1 tok/s measured vs 32–41 estimated). Run it with
+  `lxc restore wiz-debian clean && ./gradlew :app:testDebugUnitTest -Ptarget=wiz-debian`.
+  It also resumed a half-finished install left by an earlier run.
+- **Phase 3 built**: chat (streaming, stop, model picker, conversations in Room, "loading model"
+  shown separately, measured tok/s per reply, copy on long-press, light markdown), server screen
+  (status, start/stop/restart, recent log, settings, update, models with pull/unload/delete,
+  uninstall with the model list, the optional visudo-checked sudo rule).
+  `ManageFlowTest` runs chat → status → restart → settings → sudo rule → restart without
+  password → uninstall against wiz-debian, all passing, password never in the transcript.
+- Fixed: chat and server screens no longer ask for the password when a session is already live.
+- Still not done on the phone's actual screen: the install, chat and manage flows (the phone was
+  in use). Phase 3's gate is Jay using the app for a week.

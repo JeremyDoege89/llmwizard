@@ -129,6 +129,22 @@
       ]
     },
     {
+      "id": "sudoers",
+      "title": "Remove llmwizard's sudo rule",
+      "why": "It was added by llmwizard.",
+      "sudo": true,
+      "requires": [
+        "created:file:/etc/sudoers.d/llmwizard-ollama"
+      ],
+      "run": "rm -f /etc/sudoers.d/llmwizard-ollama\n",
+      "removes": [
+        {
+          "kind": "file",
+          "name": "/etc/sudoers.d/llmwizard-ollama"
+        }
+      ]
+    },
+    {
       "id": "cache",
       "title": "Remove llmwizard's download cache",
       "why": "Leftover downloads in llmwizard's own folder.",

@@ -1,6 +1,6 @@
 # Build plan: your own AI, set up and run from your phone
 
-Status: Phases 0 and 1 built and checked against LXD stand-ins for the test VMs (2026-10-10, overnight run); gates not yet walked with Jay. See NIGHT-LOG.md. Phase 2 (the app) started. (Keep this line current.)
+Status: Phases 0 and 1 built and checked against LXD stand-ins for the test VMs (2026-10-10, overnight run); gates not yet walked with Jay. See NIGHT-LOG.md. Phase 2 built (on-phone gate runs still to do), Phase 3 built and checked through the ViewModels against wiz-debian. (Keep this line current.)
 
 Codename `llmwizard` until Jay names it. Written 2026-10-09 and revised the same day to fold in Jay's `CODE-PLAN.md` and the assistant half. `CODE-PLAN.md` is retired. Section 12 says where each part of it went.
 
@@ -606,7 +606,7 @@ ssh wiz-ubuntu 'ss -ltn | grep 11434'      # should show 127.0.0.1 only
 - [x] Manual mode: typed hardware leads to the same recommendation screen, with no server
 - [x] Recommendation screen: the pick, faster, smarter, with reasons, download size and speed class
 - [x] Plan preview: every step, expandable to the exact script
-- [ ] (built, not yet run end to end on the phone) Install progress: step list and live log that survive backgrounding and the app being killed, and a failure screen with the log, retry and undo
+- [x] Install progress: step list and live log (run end to end through the ViewModel against wiz-debian; not yet on the phone's screen) that survive backgrounding and the app being killed, and a failure screen with the log, retry and undo
 - [x] Benchmark result: measured tok/s and load time
 - [x] Transcript viewer
 - [x] Screenshot tests for each screen in its main states (Roborazzi or the official Compose preview screenshot plugin, whichever is in better shape)
@@ -615,10 +615,10 @@ Gate: on a real phone, from the `clean` checkpoint to a server that is ready to 
 
 ### Phase 3: chat and management (about two weeks)
 
-- [ ] Chat: streaming, stop, model picker, conversation list, basic markdown, copy, "loading model" shown separately from "generating", measured tok/s per reply
-- [ ] Models: installed list with sizes, the recommended list for this hardware, pull by tag with progress, delete, details, loaded models and unload
-- [ ] Server: service status, start, stop, restart, recent logs, a snapshot of load, memory and disk, Ollama version and update, settings (context length, keep-alive) through `ollama-configure`, uninstall
-- [ ] The optional sudoers drop-in step
+- [x] Chat: streaming, stop, model picker, conversation list, basic markdown, copy, "loading model" shown separately from "generating", measured tok/s per reply
+- [x] Models: installed list with sizes, the recommended list for this hardware, pull by tag with progress, delete, details, loaded models and unload
+- [x] Server: service status, start, stop, restart, recent logs, a snapshot of load, memory and disk, Ollama version and update, settings (context length, keep-alive) through `ollama-configure`, uninstall
+- [x] The optional sudoers drop-in step
 - [ ] Reconnect behavior when returning to the app
 
 Gate: Jay uses the app as his only way to run his own server for a week and keeps a list of what annoyed him. The list becomes tasks.
