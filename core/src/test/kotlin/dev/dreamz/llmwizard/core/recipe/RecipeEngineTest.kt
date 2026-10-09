@@ -170,7 +170,9 @@ class RecipeEngineTest {
         for (id in Recipe.BUNDLED) {
             val r = Recipe.bundled(id)
             val e = engine(FakeOps())
-            val given = r.params.filter { it.value.required }.mapValues { "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ test@x" }
+            val given = r.params.filter { it.value.required }.mapValues { (_, spec) ->
+                when (spec.type) { ParamType.TAG -> "qwen3:0.6b"; else -> "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ test@x" }
+            }
             val values = e.resolve(r, given)
             val block = e.paramBlock(values)
             val scripts = r.steps.flatMap { s -> listOfNotNull(s.run, s.skipIf, s.verify, s.undo, s.facts).map { "${s.id}: " to it } } +
