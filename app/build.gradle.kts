@@ -1,1 +1,57 @@
-plugins { }
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.compose)
+}
+
+android {
+    namespace = "dev.dreamz.llmwizard"
+    compileSdk = 37
+
+    defaultConfig {
+        applicationId = "dev.dreamz.llmwizard"
+        // The assistant role API needs Android 10 (PLAN.md section 3).
+        minSdk = 29
+        // 36 is Play's floor for new apps. 37 adds the ACCESS_LOCAL_NETWORK runtime permission,
+        // whose flow is a Phase 2 task; until then 36 keeps LAN connections implicit.
+        targetSdk = 36
+        versionCode = 1
+        versionName = "0.0.1-spike"
+    }
+
+    buildTypes {
+        release {
+            // Spike B: the SSH stack has to survive R8 in a minified release build.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // Throwaway spike builds use the debug key; the real upload key is Jay's (Phase 5).
+            signingConfig = signingConfigs.getByName("debug")
+        }
+    }
+
+    buildFeatures { compose = true }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    packaging {
+        resources {
+            excludes += setOf("META-INF/versions/9/OSGI-INF/MANIFEST.MF", "META-INF/DEPENDENCIES", "META-INF/LICENSE*", "META-INF/NOTICE*", "META-INF/INDEX.LIST")
+        }
+    }
+}
+
+dependencies {
+    implementation(project(":core"))
+    implementation(libs.bcprov)
+    implementation(libs.core.ktx)
+    implementation(libs.activity.compose)
+    implementation(libs.lifecycle.runtime.compose)
+    implementation(platform(libs.compose.bom))
+    implementation(libs.compose.material3)
+    implementation(libs.compose.ui)
+    implementation(libs.compose.ui.tooling.preview)
+    debugImplementation(libs.compose.ui.tooling)
+}

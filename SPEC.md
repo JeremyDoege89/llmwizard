@@ -29,19 +29,27 @@ Jay owns this project. He is strong on Linux, SSH, ADB, root and Android interna
 
 ## Commands
 
-Phase 0 replaces this block with the commands that work on this machine. The intended set:
+These work on Jay's dev VM (checked 2026-10-09):
 
 ```
-./gradlew :core:test                      # logic tests, no device needed
-./gradlew :cli:run --args="scan <target>" # run the engine against a real machine
-./gradlew :cli:run --args="agent 'text Mike I am late'"   # print a tool proposal, execute nothing
-./gradlew :cli:run --args="eval-tools <model>"            # tool-calling accuracy and time per command
-./gradlew :app:assembleDebug              # build the app
-./gradlew :app:installDebug               # install on a phone that `adb devices` lists
-adb exec-out screencap -p > /tmp/screen.png   # look at what the phone shows
+export JAVA_HOME=/home/dreamz/AAMedia/toolchain/jdk      # JDK 17; Android SDK path is in local.properties
+./gradlew :core:test                                     # logic tests, no device needed
+./gradlew :cli:installDist                               # then use the launcher below (faster than :cli:run)
+cli/build/install/llmwizard/bin/llmwizard help           # every command
+cli/build/install/llmwizard/bin/llmwizard ping wiz-ubuntu
+cli/build/install/llmwizard/bin/llmwizard scan wiz-ubuntu [--save-fixture <name>]
+cli/build/install/llmwizard/bin/llmwizard recommend fixture:dl380p-hyperv-ubuntu2404
+cli/build/install/llmwizard/bin/llmwizard plan wiz-debian --model qwen3:0.6b --show-scripts
+cli/build/install/llmwizard/bin/llmwizard install wiz-debian --model qwen3:0.6b --yes
+cli/build/install/llmwizard/bin/llmwizard chat wiz-debian
+cli/build/install/llmwizard/bin/llmwizard uninstall wiz-debian --delete-models
+./gradlew :app:assembleDebug                             # build the app
+./gradlew :app:installDebug                              # install on a phone that `adb devices` lists
+adb exec-out screencap -p > /tmp/screen.png              # look at what the phone shows
+lxc restore wiz-ubuntu clean                             # put a test target back (see DECISIONS.md)
 ```
 
-Test machines are listed in `targets.local.properties`, which is gitignored.
+Test machines are listed in `targets.local.properties`, which is gitignored. Until the Hyper-V VMs exist, `wiz-ubuntu` and `wiz-debian` are LXD containers on the dev VM (`tools/lxd-targets.sh`).
 
 ## How to check your work
 

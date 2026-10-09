@@ -127,9 +127,10 @@ private class SshjSession(
 
     override val isConnected: Boolean get() = client.isConnected && client.isAuthenticated
 
+    // Main-safe: every sshj call here blocks, so the whole body runs on the IO dispatcher.
     override suspend fun exec(command: String, stdin: ByteArray?, timeout: Duration): ExecResult = try {
-        withTimeout(timeout) {
-            val session = withContext(Dispatchers.IO) { client.startSession() }
+        withContext(Dispatchers.IO) { withTimeout(timeout) {
+            val session = client.startSession()
             closingOnCancel(session) {
                 val cmd = session.exec(command)
                 coroutineScope {
@@ -145,7 +146,7 @@ private class SshjSession(
                     ExecResult(code, o, e, oTrunc || eTrunc)
                 }
             }
-        }
+        } }
     } catch (e: TimeoutCancellationException) {
         throw SshError.Timeout("running a command on ${target.name}", e)
     } catch (e: Throwable) {
