@@ -120,3 +120,24 @@ class RecommenderTest {
         assertNotNull(catalog.constants.classes.firstOrNull { it.minTps == 0.0 })
     }
 }
+
+/** The real Hyper-V VMs on the DL380p (scanned 2026-10-10), PLAN.md section 6. */
+class HyperVFixturesTest {
+    private val r = Recommender(Catalog.bundled())
+
+    @Test fun `wiz-ubuntu (64 GB, 10 vCPU) picks the 3B-active MoE at 5 to 10ish tok-s`() {
+        val pick = r.recommend(Fixtures.profile("hyperv-wiz-ubuntu")).pick!!.candidate
+        assertTrue(pick.entry.isMoe && pick.entry.activeParamsB!! in 3.0..4.0, pick.entry.id)
+        assertTrue(pick.estimate!!.midTps in 5.0..12.0, pick.estimate.toString())
+    }
+
+    @Test fun `wiz-small gets a small model`() {
+        assertTrue(r.recommend(Fixtures.profile("hyperv-wiz-small")).pick!!.candidate.entry.paramsB <= 4.5)
+    }
+
+    @Test fun `wiz-compat is warned about compatibility mode and nothing is usable`() {
+        val p = Fixtures.profile("hyperv-wiz-compat")
+        assertTrue(dev.dreamz.llmwizard.core.scan.Verdicts.of(p).any { it.code == "hyperv-compat" })
+        assertTrue(r.recommend(p).leastBad)
+    }
+}
