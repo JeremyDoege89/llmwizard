@@ -1,0 +1,51 @@
+{
+  "id": "ollama-configure",
+  "version": 1,
+  "title": "Change Ollama's settings",
+  "description": "Rewrites llmwizard's settings file for the Ollama service and restarts it if anything changed. Restarting unloads any loaded model.",
+  "params": {
+    "bind": {
+      "type": "bind",
+      "default": "127.0.0.1:11434",
+      "description": "Address Ollama listens on. 127.0.0.1 means only this machine (and the app, through SSH)."
+    },
+    "contextLength": {
+      "type": "int",
+      "default": "8192",
+      "min": 2048,
+      "max": 262144,
+      "description": "How much conversation the model keeps in view, in tokens."
+    },
+    "keepAlive": {
+      "type": "duration",
+      "default": "30m",
+      "description": "How long a model stays loaded after its last use."
+    }
+  },
+  "steps": [
+    {
+      "id": "settings",
+      "title": "Write llmwizard's settings for Ollama",
+      "why": "Updates the address, context length and keep-alive.",
+      "sudo": true,
+      "skipIf": "want=$(printf '%s\\n' \\\n    '# Written by llmwizard. Your own settings belong in override.conf, which wins over this file.' \\\n    '[Service]' \\\n    \"Environment=\\\"OLLAMA_HOST=$P_bind\\\"\" \\\n    \"Environment=\\\"OLLAMA_CONTEXT_LENGTH=$P_contextLength\\\"\" \\\n    \"Environment=\\\"OLLAMA_KEEP_ALIVE=$P_keepAlive\\\"\")\n[ \"$(cat /etc/systemd/system/ollama.service.d/10-llmwizard.conf 2>/dev/null)\" = \"$want\" ]\n",
+      "run": "want=$(printf '%s\\n' \\\n    '# Written by llmwizard. Your own settings belong in override.conf, which wins over this file.' \\\n    '[Service]' \\\n    \"Environment=\\\"OLLAMA_HOST=$P_bind\\\"\" \\\n    \"Environment=\\\"OLLAMA_CONTEXT_LENGTH=$P_contextLength\\\"\" \\\n    \"Environment=\\\"OLLAMA_KEEP_ALIVE=$P_keepAlive\\\"\")\nmkdir -p /etc/systemd/system/ollama.service.d\ntmp=$(mktemp)\nprintf '%s\\n' \"$want\" > \"$tmp\"\ninstall -o0 -g0 -m644 \"$tmp\" /etc/systemd/system/ollama.service.d/10-llmwizard.conf\nrm -f \"$tmp\"\ntouch \"$P_J/restart-needed\"\necho \"Settings written.\"\n",
+      "creates": [
+        {
+          "kind": "dropin",
+          "name": "/etc/systemd/system/ollama.service.d/10-llmwizard.conf"
+        }
+      ],
+      "facts": "printf 'settings.bind=%s\\nsettings.contextLength=%s\\nsettings.keepAlive=%s\\n' \"$P_bind\" \"$P_contextLength\" \"$P_keepAlive\""
+    },
+    {
+      "id": "restart",
+      "title": "Restart Ollama",
+      "why": "Ollama reads its settings when it starts. This unloads any loaded model.",
+      "sudo": true,
+      "skipIf": "[ ! -f \"$P_J/restart-needed\" ]",
+      "run": "systemctl daemon-reload\nsystemctl restart ollama\nrm -f \"$P_J/restart-needed\"\n",
+      "verify": "case \"$P_bind\" in 0.0.0.0:*) api=\"127.0.0.1:${P_bind##*:}\";; *) api=\"$P_bind\";; esac\ni=0\nwhile [ $i -lt 30 ]; do curl -fsS -m 2 \"http://$api/api/version\" >/dev/null 2>&1 && exit 0; i=$((i+1)); sleep 1; done\nexit 1\n"
+    }
+  ]
+}

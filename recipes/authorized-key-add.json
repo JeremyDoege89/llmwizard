@@ -1,0 +1,24 @@
+{
+  "id": "authorized-key-add",
+  "version": 1,
+  "title": "Let this phone log in with its own key",
+  "description": "Adds the app's public key to your ~/.ssh/authorized_keys, so the app can log in without your password from now on.",
+  "params": {
+    "publicKey": {
+      "type": "sshPublicKey",
+      "required": true,
+      "description": "The app's public key line."
+    }
+  },
+  "steps": [
+    {
+      "id": "add",
+      "title": "Add the app's key to ~/.ssh/authorized_keys",
+      "why": "Afterwards the app logs in with the key and forgets your password.",
+      "skipIf": "[ -f \"$HOME/.ssh/authorized_keys\" ] && grep -qxF \"$P_publicKey\" \"$HOME/.ssh/authorized_keys\"",
+      "run": "umask 077\nmkdir -p \"$HOME/.ssh\"\nchmod 700 \"$HOME/.ssh\"\n# Make sure the file ends with a newline before appending.\nif [ -s \"$HOME/.ssh/authorized_keys\" ] && [ -n \"$(tail -c1 \"$HOME/.ssh/authorized_keys\")\" ]; then echo >> \"$HOME/.ssh/authorized_keys\"; fi\nprintf '%s\\n' \"$P_publicKey\" >> \"$HOME/.ssh/authorized_keys\"\nchmod 600 \"$HOME/.ssh/authorized_keys\"\n",
+      "verify": "grep -qxF \"$P_publicKey\" \"$HOME/.ssh/authorized_keys\"",
+      "undo": "tmp=$(mktemp)\ngrep -vxF \"$P_publicKey\" \"$HOME/.ssh/authorized_keys\" > \"$tmp\" || true\ncat \"$tmp\" > \"$HOME/.ssh/authorized_keys\"\nrm -f \"$tmp\"\n"
+    }
+  ]
+}

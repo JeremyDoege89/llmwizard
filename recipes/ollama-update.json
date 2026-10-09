@@ -1,0 +1,41 @@
+{
+  "id": "ollama-update",
+  "version": 1,
+  "title": "Update Ollama",
+  "description": "Downloads a newer Ollama and replaces the program and its libraries where they are installed, then restarts the service. Models and settings are kept.",
+  "params": {
+    "ollamaVersion": {
+      "type": "version",
+      "default": "latest"
+    },
+    "ollamaSha256": {
+      "type": "sha256",
+      "default": ""
+    },
+    "prefix": {
+      "type": "path",
+      "default": "/usr/local",
+      "description": "Where Ollama is installed: /usr/local or /usr."
+    }
+  },
+  "steps": [
+    {
+      "id": "download",
+      "title": "Download the new Ollama",
+      "why": "Runs in the background on the server and resumes if interrupted.",
+      "detached": true,
+      "timeoutSec": 7200,
+      "run": "mkdir -p \"$P_CACHE\"\ncd \"$P_CACHE\"\nif [ \"$P_ollamaVersion\" = latest ]; then\n    url=$(curl -fsS -o /dev/null -w '%{redirect_url}' https://github.com/ollama/ollama/releases/latest/download/ollama-linux-amd64.tar.zst)\nelse\n    url=\"https://github.com/ollama/ollama/releases/download/v${P_ollamaVersion}/ollama-linux-amd64.tar.zst\"\nfi\nversion=$(printf '%s\\n' \"$url\" | sed -n 's|.*/download/v\\([^/]*\\)/.*|\\1|p')\n[ -n \"$version\" ] || { echo \"Could not work out which Ollama version to download.\"; exit 1; }\ncurrent=$(\"$P_prefix/bin/ollama\" --version 2>/dev/null | sed -n 's/.*version is \\([^ ]*\\).*/\\1/p' | tail -n1)\nif [ \"$current\" = \"$version\" ]; then echo \"Already on $version.\"; echo \"$version\" > ollama.version; rm -f ollama-linux-amd64.tar.zst; exit 0; fi\n# A half-finished download of a different version is thrown away, not resumed.\nif [ -f ollama.version ] && [ \"$(cat ollama.version)\" != \"$version\" ]; then rm -f ollama-linux-amd64.tar.zst; fi\necho \"$version\" > ollama.version\necho \"Downloading Ollama $version\"\n# Progress is thinned out so the log stays small; curl resumes a partial file (-C -).\ncurl -fL --retry 5 --retry-delay 5 --progress-bar -C - -o ollama-linux-amd64.tar.zst \"$url\" 2>&1 | tr '\\r' '\\n' | awk 'NR % 40 == 0'\nsha=$(sha256sum ollama-linux-amd64.tar.zst | cut -d' ' -f1)\necho \"$sha\" > ollama.sha256\necho \"sha256 $sha\"\nif [ -n \"$P_ollamaSha256\" ] && [ \"$sha\" != \"$P_ollamaSha256\" ]; then\n    echo \"The download does not match the expected checksum. Not installing it.\"\n    rm -f ollama-linux-amd64.tar.zst\n    exit 1\nfi\nzstd -t -q ollama-linux-amd64.tar.zst\necho \"Download complete.\"\n"
+    },
+    {
+      "id": "replace",
+      "title": "Replace the Ollama program and libraries",
+      "why": "Stops the service, removes the old libraries as Ollama's installer does, unpacks the new version and starts the service again.",
+      "sudo": true,
+      "skipIf": "[ ! -f \"$P_CACHE/ollama-linux-amd64.tar.zst\" ]",
+      "run": "systemctl stop ollama || true\nrm -rf \"$P_prefix/lib/ollama\"\ninstall -o0 -g0 -m755 -d \"$P_prefix/bin\" \"$P_prefix/lib/ollama\"\nzstd -dc \"$P_CACHE/ollama-linux-amd64.tar.zst\" | tar -xf - -C \"$P_prefix\" --no-same-owner\nrm -f \"$P_CACHE/ollama-linux-amd64.tar.zst\"\nsystemctl start ollama\n\"$P_prefix/bin/ollama\" --version || true\n",
+      "verify": "i=0\nwhile [ $i -lt 30 ]; do systemctl is-active --quiet ollama && exit 0; i=$((i+1)); sleep 1; done\nexit 1\n",
+      "facts": "printf 'ollama.version=%s\\nollama.sha256=%s\\n' \"$(cat \"$P_CACHE/ollama.version\" 2>/dev/null)\" \"$(cat \"$P_CACHE/ollama.sha256\" 2>/dev/null)\""
+    }
+  ]
+}

@@ -1,0 +1,205 @@
+{
+  "id": "ollama-install",
+  "version": 1,
+  "title": "Install Ollama",
+  "description": "Installs Ollama as a system service the way Ollama's own Linux instructions do, without touching GPU drivers, then downloads the chosen model.",
+  "targets": {
+    "os": [
+      "ubuntu>=22.04",
+      "debian>=12"
+    ],
+    "arch": [
+      "x86_64"
+    ],
+    "init": "systemd"
+  },
+  "params": {
+    "bind": {
+      "type": "bind",
+      "default": "127.0.0.1:11434",
+      "description": "Address Ollama listens on. 127.0.0.1 means only this machine (and the app, through SSH)."
+    },
+    "contextLength": {
+      "type": "int",
+      "default": "8192",
+      "min": 2048,
+      "max": 262144,
+      "description": "How much conversation the model keeps in view, in tokens."
+    },
+    "keepAlive": {
+      "type": "duration",
+      "default": "30m",
+      "description": "How long a model stays loaded after its last use."
+    },
+    "ollamaVersion": {
+      "type": "version",
+      "default": "latest",
+      "description": "Ollama release to install; 'latest' resolves to the newest at download time."
+    },
+    "ollamaSha256": {
+      "type": "sha256",
+      "default": "",
+      "description": "Expected sha256 of the download. Empty means record it without checking (until recipes are signed and pinned)."
+    },
+    "model": {
+      "type": "tag",
+      "default": "",
+      "description": "Model to download after installing, for example qwen3:0.6b."
+    }
+  },
+  "preflight": [
+    {
+      "id": "systemd",
+      "title": "systemd is running",
+      "run": "[ -d /run/systemd/system ]",
+      "failMessage": "This machine does not run systemd, which the Ollama service needs."
+    },
+    {
+      "id": "arch",
+      "title": "64-bit x86 machine",
+      "run": "[ \"$(uname -m)\" = x86_64 ]",
+      "failMessage": "Only x86_64 machines are supported for now."
+    },
+    {
+      "id": "dns",
+      "title": "Can look up github.com",
+      "run": "getent hosts github.com >/dev/null",
+      "failMessage": "This machine cannot resolve github.com, where Ollama is downloaded from. Check its internet connection and DNS."
+    },
+    {
+      "id": "port",
+      "title": "Port 11434 is free or already Ollama",
+      "run": "if ss -ltnH 2>/dev/null | awk '{print $4}' | grep -q ':11434$'; then systemctl is-active --quiet ollama; fi",
+      "failMessage": "Something other than Ollama is already using port 11434."
+    }
+  ],
+  "steps": [
+    {
+      "id": "prereqs",
+      "title": "Install curl and zstd if they are missing",
+      "why": "curl downloads Ollama and zstd unpacks it.",
+      "sudo": true,
+      "skipIf": "command -v curl >/dev/null && command -v zstd >/dev/null && command -v tar >/dev/null",
+      "run": "apt-get -o DPkg::Lock::Timeout=300 -o Acquire::Retries=3 update -qq\napt-get -o DPkg::Lock::Timeout=300 -o Acquire::Retries=3 install -y -qq --no-install-recommends curl zstd tar ca-certificates\n",
+      "verify": "command -v curl >/dev/null && command -v zstd >/dev/null",
+      "timeoutSec": 900
+    },
+    {
+      "id": "download",
+      "title": "Download Ollama",
+      "why": "About 1.5 GB. Runs in the background on the server, so it keeps going if your phone sleeps, and it resumes if interrupted.",
+      "skipIf": "command -v ollama >/dev/null || [ -x /usr/local/bin/ollama ]",
+      "detached": true,
+      "timeoutSec": 7200,
+      "run": "mkdir -p \"$P_CACHE\"\ncd \"$P_CACHE\"\nif [ \"$P_ollamaVersion\" = latest ]; then\n    url=$(curl -fsS -o /dev/null -w '%{redirect_url}' https://github.com/ollama/ollama/releases/latest/download/ollama-linux-amd64.tar.zst)\nelse\n    url=\"https://github.com/ollama/ollama/releases/download/v${P_ollamaVersion}/ollama-linux-amd64.tar.zst\"\nfi\nversion=$(printf '%s\\n' \"$url\" | sed -n 's|.*/download/v\\([^/]*\\)/.*|\\1|p')\n[ -n \"$version\" ] || { echo \"Could not work out which Ollama version to download.\"; exit 1; }\n# A half-finished download of a different version is thrown away, not resumed.\nif [ -f ollama.version ] && [ \"$(cat ollama.version)\" != \"$version\" ]; then rm -f ollama-linux-amd64.tar.zst; fi\necho \"$version\" > ollama.version\necho \"Downloading Ollama $version\"\n# Progress is thinned out so the log stays small; curl resumes a partial file (-C -).\ncurl -fL --retry 5 --retry-delay 5 --progress-bar -C - -o ollama-linux-amd64.tar.zst \"$url\" 2>&1 | tr '\\r' '\\n' | awk 'NR % 40 == 0'\nsha=$(sha256sum ollama-linux-amd64.tar.zst | cut -d' ' -f1)\necho \"$sha\" > ollama.sha256\necho \"sha256 $sha\"\nif [ -n \"$P_ollamaSha256\" ] && [ \"$sha\" != \"$P_ollamaSha256\" ]; then\n    echo \"The download does not match the expected checksum. Not installing it.\"\n    rm -f ollama-linux-amd64.tar.zst\n    exit 1\nfi\nzstd -t -q ollama-linux-amd64.tar.zst\necho \"Download complete.\"\n",
+      "verify": "[ -s \"$P_CACHE/ollama-linux-amd64.tar.zst\" ]"
+    },
+    {
+      "id": "unpack",
+      "title": "Unpack Ollama into /usr/local",
+      "why": "Puts the ollama program in /usr/local/bin and its libraries in /usr/local/lib/ollama, where Ollama's own installer puts them.",
+      "sudo": true,
+      "skipIf": "command -v ollama >/dev/null || [ -x /usr/local/bin/ollama ]",
+      "run": "install -o0 -g0 -m755 -d /usr/local/bin /usr/local/lib/ollama\nzstd -dc \"$P_CACHE/ollama-linux-amd64.tar.zst\" | tar -xf - -C /usr/local --no-same-owner\n/usr/local/bin/ollama --version || true\nrm -f \"$P_CACHE/ollama-linux-amd64.tar.zst\"\n",
+      "verify": "[ -x /usr/local/bin/ollama ]",
+      "undo": "rm -f /usr/local/bin/ollama\nrm -rf /usr/local/lib/ollama\n",
+      "creates": [
+        {
+          "kind": "file",
+          "name": "/usr/local/bin/ollama"
+        },
+        {
+          "kind": "dir",
+          "name": "/usr/local/lib/ollama"
+        }
+      ],
+      "facts": "printf 'ollama.prefix=/usr/local\\nollama.version=%s\\nollama.sha256=%s\\n' \"$(cat \"$P_CACHE/ollama.version\" 2>/dev/null)\" \"$(cat \"$P_CACHE/ollama.sha256\" 2>/dev/null)\""
+    },
+    {
+      "id": "user",
+      "title": "Create the ollama system user",
+      "why": "The service runs as its own unprivileged user, as Ollama's instructions set it up. Your user joins its group so you can read its files.",
+      "sudo": true,
+      "skipIf": "id ollama >/dev/null 2>&1",
+      "run": "useradd -r -s /bin/false -U -m -d /usr/share/ollama ollama\nif getent group render >/dev/null 2>&1; then usermod -a -G render ollama; fi\nif getent group video >/dev/null 2>&1; then usermod -a -G video ollama; fi\nusermod -a -G ollama \"$P_USER\"\n",
+      "verify": "id ollama >/dev/null 2>&1",
+      "undo": "userdel ollama 2>/dev/null || true\ngroupdel ollama 2>/dev/null || true\nrm -rf /usr/share/ollama\n",
+      "creates": [
+        {
+          "kind": "user",
+          "name": "ollama"
+        },
+        {
+          "kind": "group",
+          "name": "ollama"
+        },
+        {
+          "kind": "dir",
+          "name": "/usr/share/ollama"
+        }
+      ]
+    },
+    {
+      "id": "unit",
+      "title": "Create the Ollama service",
+      "why": "A systemd service starts Ollama at boot and restarts it if it stops.",
+      "sudo": true,
+      "skipIf": "[ -f /etc/systemd/system/ollama.service ] || [ -f /lib/systemd/system/ollama.service ] || [ -f /usr/lib/systemd/system/ollama.service ]",
+      "run": "cat > /etc/systemd/system/ollama.service <<'UNIT'\n[Unit]\nDescription=Ollama Service\nAfter=network-online.target\n\n[Service]\nExecStart=/usr/local/bin/ollama serve\nUser=ollama\nGroup=ollama\nRestart=always\nRestartSec=3\nEnvironment=\"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\"\n\n[Install]\nWantedBy=multi-user.target\nUNIT\nchmod 644 /etc/systemd/system/ollama.service\ntouch \"$P_J/restart-needed\"\n",
+      "verify": "[ -f /etc/systemd/system/ollama.service ]",
+      "undo": "systemctl disable --now ollama 2>/dev/null || true\nrm -f /etc/systemd/system/ollama.service\nsystemctl daemon-reload\n",
+      "creates": [
+        {
+          "kind": "unit",
+          "name": "/etc/systemd/system/ollama.service"
+        }
+      ]
+    },
+    {
+      "id": "settings",
+      "title": "Write llmwizard's settings for Ollama",
+      "why": "Keeps Ollama listening only on this machine, sets how much conversation it remembers and how long a model stays loaded. Stored in its own file so your own changes are never overwritten.",
+      "sudo": true,
+      "skipIf": "want=$(printf '%s\\n' \\\n    '# Written by llmwizard. Your own settings belong in override.conf, which wins over this file.' \\\n    '[Service]' \\\n    \"Environment=\\\"OLLAMA_HOST=$P_bind\\\"\" \\\n    \"Environment=\\\"OLLAMA_CONTEXT_LENGTH=$P_contextLength\\\"\" \\\n    \"Environment=\\\"OLLAMA_KEEP_ALIVE=$P_keepAlive\\\"\")\n[ \"$(cat /etc/systemd/system/ollama.service.d/10-llmwizard.conf 2>/dev/null)\" = \"$want\" ]\n",
+      "run": "want=$(printf '%s\\n' \\\n    '# Written by llmwizard. Your own settings belong in override.conf, which wins over this file.' \\\n    '[Service]' \\\n    \"Environment=\\\"OLLAMA_HOST=$P_bind\\\"\" \\\n    \"Environment=\\\"OLLAMA_CONTEXT_LENGTH=$P_contextLength\\\"\" \\\n    \"Environment=\\\"OLLAMA_KEEP_ALIVE=$P_keepAlive\\\"\")\nmkdir -p /etc/systemd/system/ollama.service.d\ntmp=$(mktemp)\nprintf '%s\\n' \"$want\" > \"$tmp\"\ninstall -o0 -g0 -m644 \"$tmp\" /etc/systemd/system/ollama.service.d/10-llmwizard.conf\nrm -f \"$tmp\"\ntouch \"$P_J/restart-needed\"\necho \"Settings written.\"\n",
+      "verify": "[ -f /etc/systemd/system/ollama.service.d/10-llmwizard.conf ]",
+      "undo": "rm -f /etc/systemd/system/ollama.service.d/10-llmwizard.conf\nrmdir /etc/systemd/system/ollama.service.d 2>/dev/null || true\nsystemctl daemon-reload\n",
+      "creates": [
+        {
+          "kind": "dropin",
+          "name": "/etc/systemd/system/ollama.service.d/10-llmwizard.conf"
+        }
+      ],
+      "facts": "printf 'settings.bind=%s\\nsettings.contextLength=%s\\nsettings.keepAlive=%s\\n' \"$P_bind\" \"$P_contextLength\" \"$P_keepAlive\""
+    },
+    {
+      "id": "start",
+      "title": "Start Ollama and turn it on at boot",
+      "why": "Loads the new settings and starts the service.",
+      "sudo": true,
+      "skipIf": "systemctl is-active --quiet ollama && systemctl is-enabled --quiet ollama && [ ! -f \"$P_J/restart-needed\" ]",
+      "run": "systemctl daemon-reload\nsystemctl enable ollama\nsystemctl restart ollama\nrm -f \"$P_J/restart-needed\"\n",
+      "verify": "case \"$P_bind\" in 0.0.0.0:*) api=\"127.0.0.1:${P_bind##*:}\";; *) api=\"$P_bind\";; esac\ni=0\nwhile [ $i -lt 30 ]; do curl -fsS -m 2 \"http://$api/api/version\" >/dev/null 2>&1 && exit 0; i=$((i+1)); sleep 1; done\nexit 1\n",
+      "facts": "case \"$P_bind\" in 0.0.0.0:*) api=\"127.0.0.1:${P_bind##*:}\";; *) api=\"$P_bind\";; esac\nprintf 'ollama.apiVersion=%s\\n' \"$(curl -fsS -m 3 \"http://$api/api/version\" | sed -n 's/.*\"version\":\"\\([^\"]*\\)\".*/\\1/p')\"\n"
+    },
+    {
+      "id": "pull",
+      "title": "Download the model",
+      "why": "Models are large; this runs in the background on the server and survives your phone disconnecting.",
+      "requires": [
+        "param:model"
+      ],
+      "skipIf": "case \"$P_bind\" in 0.0.0.0:*) api=\"127.0.0.1:${P_bind##*:}\";; *) api=\"$P_bind\";; esac\ncurl -fsS -m 10 \"http://$api/api/show\" -d \"{\\\"model\\\":\\\"$P_model\\\"}\" >/dev/null 2>&1",
+      "detached": true,
+      "timeoutSec": 86400,
+      "run": "case \"$P_bind\" in 0.0.0.0:*) api=\"127.0.0.1:${P_bind##*:}\";; *) api=\"$P_bind\";; esac\necho \"Downloading $P_model\"\ncurl -sS -N \"http://$api/api/pull\" -d \"{\\\"model\\\":\\\"$P_model\\\"}\" | awk '/\"error\"/ { print; err=1; next } { if (++n % 50 == 1 || /success/) print } END { exit err }'\n",
+      "verify": "case \"$P_bind\" in 0.0.0.0:*) api=\"127.0.0.1:${P_bind##*:}\";; *) api=\"$P_bind\";; esac\ncurl -fsS -m 10 \"http://$api/api/show\" -d \"{\\\"model\\\":\\\"$P_model\\\"}\" >/dev/null",
+      "creates": [
+        {
+          "kind": "model",
+          "name": "{{model}}"
+        }
+      ]
+    }
+  ]
+}

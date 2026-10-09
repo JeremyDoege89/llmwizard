@@ -1,0 +1,132 @@
+{
+  "id": "ollama-uninstall",
+  "version": 1,
+  "title": "Remove Ollama",
+  "description": "Removes only what llmwizard installed, as listed in its record on the server. An Ollama you installed yourself is left alone. Models are deleted only if you confirm the list.",
+  "params": {
+    "deleteModels": {
+      "type": "bool",
+      "default": "no",
+      "description": "Delete downloaded models too. The app lists them first."
+    }
+  },
+  "steps": [
+    {
+      "id": "stop",
+      "title": "Stop and disable the Ollama service",
+      "why": "The service has to stop before its files are removed.",
+      "sudo": true,
+      "requires": [
+        "created:unit:/etc/systemd/system/ollama.service"
+      ],
+      "run": "systemctl disable --now ollama 2>/dev/null || systemctl stop ollama 2>/dev/null || true\n"
+    },
+    {
+      "id": "dropin",
+      "title": "Remove llmwizard's settings file",
+      "why": "It was added by llmwizard.",
+      "sudo": true,
+      "requires": [
+        "created:dropin:/etc/systemd/system/ollama.service.d/10-llmwizard.conf"
+      ],
+      "run": "rm -f /etc/systemd/system/ollama.service.d/10-llmwizard.conf\nrmdir /etc/systemd/system/ollama.service.d 2>/dev/null || true\nsystemctl daemon-reload\n",
+      "removes": [
+        {
+          "kind": "dropin",
+          "name": "/etc/systemd/system/ollama.service.d/10-llmwizard.conf"
+        }
+      ]
+    },
+    {
+      "id": "unit",
+      "title": "Remove the Ollama service",
+      "why": "It was created by llmwizard.",
+      "sudo": true,
+      "requires": [
+        "created:unit:/etc/systemd/system/ollama.service"
+      ],
+      "run": "rm -f /etc/systemd/system/ollama.service\nsystemctl daemon-reload\nsystemctl reset-failed ollama 2>/dev/null || true\n",
+      "removes": [
+        {
+          "kind": "unit",
+          "name": "/etc/systemd/system/ollama.service"
+        }
+      ]
+    },
+    {
+      "id": "binary",
+      "title": "Remove the Ollama program and libraries",
+      "why": "They were installed by llmwizard.",
+      "sudo": true,
+      "requires": [
+        "created:file:/usr/local/bin/ollama"
+      ],
+      "run": "rm -f /usr/local/bin/ollama\nrm -rf /usr/local/lib/ollama\n",
+      "verify": "[ ! -e /usr/local/bin/ollama ]",
+      "removes": [
+        {
+          "kind": "file",
+          "name": "/usr/local/bin/ollama"
+        },
+        {
+          "kind": "dir",
+          "name": "/usr/local/lib/ollama"
+        }
+      ]
+    },
+    {
+      "id": "models",
+      "title": "Delete the downloaded models",
+      "why": "You confirmed the models should be deleted. They live in /usr/share/ollama.",
+      "sudo": true,
+      "requires": [
+        "created:dir:/usr/share/ollama",
+        "param:deleteModels"
+      ],
+      "run": "rm -rf /usr/share/ollama/.ollama\n"
+    },
+    {
+      "id": "user",
+      "title": "Remove the ollama user and group",
+      "why": "They were created by llmwizard. Its home folder (with any models) is removed only if you chose to delete the models.",
+      "sudo": true,
+      "requires": [
+        "created:user:ollama"
+      ],
+      "run": "if [ \"$P_deleteModels\" = yes ]; then\n    userdel -r ollama 2>/dev/null || userdel ollama\nelse\n    userdel ollama\nfi\ngroupdel ollama 2>/dev/null || true\n",
+      "verify": "! id ollama >/dev/null 2>&1",
+      "removes": [
+        {
+          "kind": "user",
+          "name": "ollama"
+        },
+        {
+          "kind": "group",
+          "name": "ollama"
+        }
+      ]
+    },
+    {
+      "id": "home",
+      "title": "Forget the ollama folder",
+      "why": "Bookkeeping only: the models folder was deleted.",
+      "requires": [
+        "created:dir:/usr/share/ollama",
+        "param:deleteModels"
+      ],
+      "run": "true\n",
+      "removes": [
+        {
+          "kind": "dir",
+          "name": "/usr/share/ollama"
+        }
+      ]
+    },
+    {
+      "id": "cache",
+      "title": "Remove llmwizard's download cache",
+      "why": "Leftover downloads in llmwizard's own folder.",
+      "run": "rm -rf \"$P_CACHE\"\n"
+    }
+  ]
+}
