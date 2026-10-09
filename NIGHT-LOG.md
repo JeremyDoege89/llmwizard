@@ -103,3 +103,27 @@ landscape, since it looked like it was being picked up.
 - Fixed: chat and server screens no longer ask for the password when a session is already live.
 - Still not done on the phone's actual screen: the install, chat and manage flows (the phone was
   in use). Phase 3's gate is Jay using the app for a week.
+
+## Continued: Phases 4 and 5 (2026-10-10)
+
+- **Phase 4 (share with other apps):** guardrails (public address refuses 0.0.0.0, CGNAT not
+  offered), `expose-lan` / `expose-private` with a network-scoped ufw rule when a firewall is on,
+  connect section with URLs, QR code and snippets. Verified for real on both containers, with and
+  without ufw: closed → shared (this VM listed models over `/v1`) → private and closed again.
+  CLI: `llmwizard expose <target> [lan|private]`. Not built: Tailscale wizard, phone-side probe.
+- **Phase 5 (what doesn't need Jay):** Ollama pinned to 0.40.2 + sha256; signed recipe/catalog
+  bundle with current+next keys and rollback protection, and `llmwizard bundle keygen|make|sign|verify`
+  (tested with a throwaway key; the real key is Jay's to make); Pro unlock behind one
+  `Entitlements` interface with Play Billing 9.1.0 (product id placeholder `llmwizard_pro`, free
+  tier = one server, debug override); diagnostic report with redaction; draft privacy policy in
+  `docs/privacy-policy.md`. The full app builds minified (11 MB) but has not been run on a phone.
+- **Phone incident, 11:26:** after a slow 45 MB install over Tailscale, my fixed-delay taps went
+  in blind and opened Google Calendar's new-event screen (not saved) while Jay was also using the
+  phone. I stopped touching the phone. From now on: check the foreground app before every tap.
+
+## Waiting on Jay
+
+Play Console (listing, product id, testing track), the real bundle signing key and where the
+bundle is hosted (question 5), the app's name and applicationId (question 1), Pro contents and
+price (question 3), an NVIDIA machine, the real Hyper-V VMs and the MX desktop, and walking the
+phase gates. Release 2 (the assistant) is not started, per the plan's gates.
