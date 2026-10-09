@@ -1,0 +1,50 @@
+{"id": "c001", "request": "text Mike I'm running late", "tool": "sms_send", "args": {"to": "Mike", "body": "~running late"}}
+{"id": "c002", "request": "Send a message to Sarah saying I'll be home by six", "tool": "sms_send", "args": {"to": "Sarah", "body": "~home"}}
+{"id": "c003", "request": "tell mom I love her", "tool": "sms_send", "args": {"to": "mom", "body": "~love"}}
+{"id": "c004", "request": "Text 555-123-4567 that the package arrived", "tool": "sms_send", "args": {"to": "~555", "body": "~package"}}
+{"id": "c005", "request": "message Dave: can you grab milk on the way?", "tool": "sms_send", "args": {"to": "Dave", "body": "~milk"}}
+{"id": "c006", "request": "SMS the plumber: Tuesday works for me", "tool": "sms_send", "args": {"to": "~plumber", "body": "~Tuesday"}}
+{"id": "c007", "request": "Let Jenny know the meeting moved to 3", "tool": "sms_send", "args": {"to": "Jenny", "body": "~3"}}
+{"id": "c008", "request": "text my wife ok sounds good", "tool": "sms_send", "args": {"to": "~wife", "body": "~sounds good"}}
+{"id": "c009", "request": "send a text to Alex that says happy birthday!", "tool": "sms_send", "args": {"to": "Alex", "body": "~birthday"}}
+{"id": "c010", "request": "Reply to Chris: on my way", "tool": "sms_send", "args": {"to": "Chris", "body": "~on my way"}}
+{"id": "c011", "request": "text Bob and say the game starts at 7", "tool": "sms_send", "args": {"to": "Bob", "body": "~7"}}
+{"id": "c012", "request": "could you message Priya that I'm stuck in traffic", "tool": "sms_send", "args": {"to": "Priya", "body": "~traffic"}}
+{"id": "c013", "request": "call Mike", "tool": "call_place", "args": {"to": "Mike"}}
+{"id": "c014", "request": "Phone my dad", "tool": "call_place", "args": {"to": "~dad"}}
+{"id": "c015", "request": "ring Sarah please", "tool": "call_place", "args": {"to": "Sarah"}}
+{"id": "c016", "request": "call 911", "tool": "call_place", "args": {"to": "911"}}
+{"id": "c017", "request": "dial 555 0199", "tool": "call_place", "args": {"to": "~555"}}
+{"id": "c018", "request": "Give the dentist a call", "tool": "call_place", "args": {"to": "~dentist"}}
+{"id": "c019", "request": "call home", "tool": "call_place", "args": {"to": "~home"}}
+{"id": "c020", "request": "can you call Jenny for me", "tool": "call_place", "args": {"to": "Jenny"}}
+{"id": "c021", "request": "set an alarm for 6:30 am", "tool": "clock_set", "args": {"kind": "alarm", "time": "06:30"}}
+{"id": "c022", "request": "wake me up at 7", "tool": "clock_set", "args": {"kind": "alarm", "time": "07:00"}}
+{"id": "c023", "request": "alarm at 5:45 pm", "tool": "clock_set", "args": {"kind": "alarm", "time": "17:45"}}
+{"id": "c024", "request": "Set an alarm for quarter past eight in the morning", "tool": "clock_set", "args": {"kind": "alarm", "time": "08:15"}}
+{"id": "c025", "request": "set alarm 22:00 called bedtime", "tool": "clock_set", "args": {"kind": "alarm", "time": "22:00", "label": "~bedtime"}}
+{"id": "c026", "request": "I need an alarm at noon", "tool": "clock_set", "args": {"kind": "alarm", "time": "12:00"}}
+{"id": "c027", "request": "set a timer for 10 minutes", "tool": "clock_set", "args": {"kind": "timer", "seconds": "600"}}
+{"id": "c028", "request": "timer 30 seconds", "tool": "clock_set", "args": {"kind": "timer", "seconds": "30"}}
+{"id": "c029", "request": "start a 1 hour timer", "tool": "clock_set", "args": {"kind": "timer", "seconds": "3600"}}
+{"id": "c030", "request": "Set a timer for two and a half minutes for the eggs", "tool": "clock_set", "args": {"kind": "timer", "seconds": "150"}}
+{"id": "c031", "request": "remind me in 15 minutes with a timer", "tool": "clock_set", "args": {"kind": "timer", "seconds": "900"}}
+{"id": "c032", "request": "pasta timer, 8 minutes", "tool": "clock_set", "args": {"kind": "timer", "seconds": "480"}}
+{"id": "c033", "request": "add lunch with Sam tomorrow at noon to my calendar", "tool": "calendar_create_event", "args": {"title": "~lunch", "start": "2026-10-10T12:00"}}
+{"id": "c034", "request": "Schedule a dentist appointment on October 14 at 3pm", "tool": "calendar_create_event", "args": {"title": "~dentist", "start": "2026-10-14T15:00"}}
+{"id": "c035", "request": "put team meeting on my calendar today at 4:30 pm for 30 minutes", "tool": "calendar_create_event", "args": {"title": "~meeting", "start": "2026-10-09T16:30", "minutes": "30"}}
+{"id": "c036", "request": "create an event called Car service on 2026-10-20 at 09:00 at Main Street Garage", "tool": "calendar_create_event", "args": {"title": "~car service", "start": "2026-10-20T09:00", "location": "~Main Street"}}
+{"id": "c037", "request": "calendar: dinner at mom's tomorrow 6pm", "tool": "calendar_create_event", "args": {"title": "~dinner", "start": "2026-10-10T18:00"}}
+{"id": "c038", "request": "block 2 hours on Monday at 10 for deep work", "tool": "calendar_create_event", "args": {"title": "~deep work", "start": "2026-10-12T10:00", "minutes": "120"}}
+{"id": "c039", "request": "add soccer practice next Wednesday at 5:30pm", "tool": "calendar_create_event", "args": {"title": "~soccer", "start": "2026-10-14T17:30"}}
+{"id": "c040", "request": "what's Mike's number?", "tool": "contacts_find", "args": {"name": "Mike"}}
+{"id": "c041", "request": "do I have a contact named Rosa", "tool": "contacts_find", "args": {"name": "Rosa"}}
+{"id": "c042", "request": "look up Dr. Patel", "tool": "contacts_find", "args": {"name": "~Patel"}}
+{"id": "c043", "request": "find the contact for the landlord", "tool": "contacts_find", "args": {"name": "~landlord"}}
+{"id": "c044", "request": "read my latest texts", "tool": "sms_read_recent", "args": {}}
+{"id": "c045", "request": "what did Sarah text me?", "tool": "sms_read_recent", "args": {"from": "Sarah"}}
+{"id": "c046", "request": "show me my last 5 messages", "tool": "sms_read_recent", "args": {"count": "5"}}
+{"id": "c047", "request": "any new messages from mom?", "tool": "sms_read_recent", "args": {"from": "~mom"}}
+{"id": "c048", "request": "what's the capital of France?", "tool": null, "args": {}}
+{"id": "c049", "request": "tell me a joke", "tool": null, "args": {}}
+{"id": "c050", "request": "turn on the flashlight", "tool": null, "args": {}}

@@ -1,5 +1,10 @@
 package dev.dreamz.llmwizard.cli
 
+import dev.dreamz.llmwizard.core.agent.Eval
+import dev.dreamz.llmwizard.core.agent.EvalReport
+import dev.dreamz.llmwizard.core.agent.Proposal
+import dev.dreamz.llmwizard.core.agent.ServerBrain
+import dev.dreamz.llmwizard.core.agent.ToolRegistry
 import dev.dreamz.llmwizard.core.catalog.Catalog
 import dev.dreamz.llmwizard.core.catalog.Intent
 import dev.dreamz.llmwizard.core.catalog.Recommender
@@ -52,6 +57,8 @@ class Commands(private val args: List<String>) {
         "update" -> update()
         "uninstall" -> uninstall()
         "transcript" -> transcript()
+        "agent" -> agent()
+        "eval-tools" -> evalTools()
         null, "help", "-h", "--help" -> { usage(); 0 }
         else -> throw CliError("unknown command '$cmd' (try help)")
     }
@@ -81,6 +88,10 @@ class Commands(private val args: List<String>) {
           uninstall <target> [--delete-models] [--yes]
                                    remove what llmwizard installed (and only that)
           transcript <target>      every script sent to the target, with exit codes
+          agent <target> "<request>" [--model <tag>]
+                                   print the tool proposal the server model makes; executes nothing
+          eval-tools <target> --model <tag> [--limit n]
+                                   tool-calling accuracy and time per command on the eval set
 
         <target> is a name in targets.local.properties, or user@host[:port]
         (then LLMWIZARD_KEY=<private key file> or LLMWIZARD_PASSWORD=… is used).
@@ -378,6 +389,44 @@ class Commands(private val args: List<String>) {
             }
         }
         return simpleRecipe("ollama-uninstall", mapOf("deleteModels" to if (deleteModels) "yes" else "no"))
+    }
+
+    private suspend fun agent(): Int {
+        val e = entry()
+        val request = arg(1, "request")
+        connect(e).use { s ->
+            val server = server(e, s)
+            val c = server.ollama(server.ollamaEndpoint(server.manifest()))
+            try {
+                val model = opt("--model") ?: c.tags().firstOrNull()?.name ?: throw CliError("no models installed")
+                val p = ServerBrain(c, model).propose(request, ToolRegistry.DEFAULT)
+                println(json.encodeToString(Proposal.serializer(), p))
+                println("(nothing was executed)")
+            } finally { c.close() }
+            return 0
+        }
+    }
+
+    private suspend fun evalTools(): Int {
+        val e = entry()
+        val model = opt("--model") ?: throw CliError("--model is required")
+        val items = Eval.bundled().let { all -> opt("--limit")?.toInt()?.let { all.take(it) } ?: all }
+        connect(e).use { s ->
+            val server = server(e, s)
+            val c = server.ollama(server.ollamaEndpoint(server.manifest()))
+            try {
+                println("Warming up $model…")
+                ServerBrain(c, model, Eval.CLOCK).propose("set a timer for 1 minute", ToolRegistry.DEFAULT)
+                val report = Eval.run(ServerBrain(c, model, Eval.CLOCK), ToolRegistry.DEFAULT, items) { o ->
+                    println("%s %-5s %6d ms  %s%s".format(o.id, if (o.pass) "ok" else "FAIL", o.millis, o.request, o.why?.let { "  -> $it" } ?: ""))
+                }
+                println("\n$model: ${report.passed}/${report.total} right (%.0f%%, measured), median %d ms, p90 %d ms per command".format(report.accuracy * 100, report.medianMillis, report.p90Millis))
+                println("Per tool: ${report.perTool.entries.joinToString { "${it.key} ${it.value}" }}")
+                File(configDir, "eval-results.jsonl").apply { parentFile.mkdirs() }
+                    .appendText(Json.encodeToString(EvalReport.serializer(), report) + "\n")
+            } finally { c.close() }
+            return 0
+        }
     }
 
     private fun transcript(): Int {
