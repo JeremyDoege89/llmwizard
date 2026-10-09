@@ -49,9 +49,10 @@
       {
         "match": "(?i)xeon.*e5-\\d{4}\\s*v[1-4]?\\b|xeon.*e5-\\d{4}\\b",
         "label": "older Xeon E5 server, DDR3/DDR4 quad-channel",
-        "lowGBs": 40,
-        "highGBs": 50,
-        "perCoreGBs": 8
+        "lowGBs": 33,
+        "highGBs": 43,
+        "perCoreGBs": 8,
+        "_calibration": "2026-10-09 DL380p (2x E5-2680 v2, DDR3): qwen3.6:35b-a3b measured 8.5 tok/s; qwen3:0.6b measured 41-45 tok/s"
       },
       {
         "match": "(?i)xeon.*(silver|gold|platinum|w-\\d{4})",

@@ -135,6 +135,14 @@ class SshTargetOps(
         }
     }
 
+    override suspend fun collectFinished(recipeId: String, step: PlannedStep): Int? {
+        val ref = resume.get(targetName, recipeId, step.spec.id) ?: return null
+        val st = jobs.status(ref.jobId, ref.step)
+        if (st.state == StepState.RUNNING) return null
+        resume.clear(targetName, recipeId, step.spec.id)
+        return if (st.state == StepState.FINISHED) st.exitCode else null
+    }
+
     override suspend fun runUndo(recipeId: String, step: PlannedStep, script: String, onLog: suspend (String) -> Unit): Int {
         val priv = if (step.spec.sudo) privilege else null
         val id = job()

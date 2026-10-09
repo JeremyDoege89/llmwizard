@@ -60,7 +60,7 @@ data class Constants(
 
 @Serializable data class KvRule(val maxParamsB: Double, val bytes: Long)
 @Serializable data class ClassRule(val name: SpeedClass, val minTps: Double)
-@Serializable data class CpuBandwidthRule(val match: String, val label: String, val lowGBs: Double, val highGBs: Double, val perCoreGBs: Double)
+@Serializable data class CpuBandwidthRule(val match: String, val label: String, val lowGBs: Double, val highGBs: Double, val perCoreGBs: Double, @kotlinx.serialization.SerialName("_calibration") val calibration: String? = null)
 @Serializable data class GpuBandwidthRule(val match: String, @kotlinx.serialization.SerialName("GBs") val gbs: Double)
 
 @Serializable

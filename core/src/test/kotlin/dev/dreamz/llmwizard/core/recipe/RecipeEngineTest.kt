@@ -214,3 +214,18 @@ class EngineOrderingTest {
         assertEquals(listOf("settings", "restart"), ops.ran)
     }
 }
+
+class FinishedElsewhereTest {
+    @Test fun `a background step that finished while the app was gone is recorded as ours`() = runBlocking {
+        val pull = Recipe.bundled("model-pull")
+        val base = FakeOps(done = mutableSetOf("pull"))
+        val ops = object : TargetOps by base {
+            override suspend fun collectFinished(recipeId: String, step: PlannedStep) = if (step.spec.id == "pull") 0 else null
+        }
+        val e = RecipeEngine(ops)
+        val values = e.resolve(pull, mapOf("model" to "qwen3:4b"))
+        val r = e.execute(pull, e.plan(pull, values, null), values)
+        assertTrue(r.changed)
+        assertTrue(base.manifest!!.has("model", "qwen3:4b"))
+    }
+}

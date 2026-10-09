@@ -52,6 +52,11 @@ interface TargetOps {
     /** Runs a planned step to completion (resuming a detached one if it is still going). */
     suspend fun run(recipeId: String, step: PlannedStep, onLog: suspend (String) -> Unit): Int
     suspend fun runUndo(recipeId: String, step: PlannedStep, script: String, onLog: suspend (String) -> Unit): Int
+    /**
+     * A detached step this phone started earlier that finished while nobody was watching (the app
+     * was killed). Returns its exit code and forgets it; null when there is no such step.
+     */
+    suspend fun collectFinished(recipeId: String, step: PlannedStep): Int? = null
     suspend fun readManifest(): Manifest?
     suspend fun writeManifest(manifest: Manifest)
 }
@@ -113,7 +118,15 @@ class RecipeEngine(private val ops: TargetOps, private val now: () -> String = {
                 ran.isEmpty() && step.alreadyDone -> true
                 else -> ops.probe(block + step.spec.skipIf, "skipIf ${step.spec.id}") == 0
             }
-            if (done) { events(EngineEvent.StepSkipped(step)); continue }
+            if (done) {
+                // Our own background step finished while the app was gone: it did run, so record it.
+                if (ops.collectFinished(recipe.id, step) == 0) {
+                    ran += step
+                    manifest = manifest.plus(step.creates.map { ManifestEntry(it.kind, it.name, recipe.id, now()) })
+                    ops.writeManifest(manifest)
+                }
+                events(EngineEvent.StepSkipped(step)); continue
+            }
             events(EngineEvent.StepStarted(step))
             val code = ops.run(recipe.id, step) { events(EngineEvent.Log(step, it)) }
             events(EngineEvent.StepFinished(step, code))
