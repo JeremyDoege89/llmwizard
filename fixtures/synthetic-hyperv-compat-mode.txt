@@ -1,0 +1,87 @@
+# SYNTHETIC fixture: Hyper-V guest on the DL380p with processor compatibility mode ON (AVX hidden)
+
+@@ os
+PRETTY_NAME="Ubuntu 24.04.1 LTS"
+NAME="Ubuntu"
+VERSION_ID="24.04"
+ID=ubuntu
+ID_LIKE=debian
+ARCH=x86_64
+KERNEL=6.8.0-45-generic
+
+@@ init
+systemd=yes
+pid1=systemd
+
+@@ virt
+virt=microsoft
+container=none
+
+@@ lscpu
+Architecture:                            x86_64
+CPU(s):                                  40
+Vendor ID:                               GenuineIntel
+Model name:                              Intel(R) Xeon(R) CPU E5-2680 v2 @ 2.80GHz
+Thread(s) per core:                      2
+Core(s) per socket:                      10
+Socket(s):                               2
+Flags:                                   fpu vme sse sse2 ssse3 sse4_1 sse4_2 hypervisor
+NUMA node(s):                            2
+
+@@ cpuflags
+flags		: fpu vme sse sse2 ssse3 sse4_1 sse4_2 hypervisor
+model name	: Intel(R) Xeon(R) CPU E5-2680 v2 @ 2.80GHz
+nproc=40
+
+@@ numa
+node0 0-39
+node1 0-39
+
+@@ meminfo
+MemTotal:       128000000 kB
+MemAvailable:   126000000 kB
+SwapTotal:       2097148 kB
+SwapFree:        2097148 kB
+
+@@ pci
+
+@@ nvidia
+nvidia_smi=absent
+
+@@ disk
+root /dev/nvme0n1p2 900000000000 600000000000 300000000000      66% /
+
+@@ ollama
+path=
+service_active=inactive
+service_enabled=not-found
+service_fragment=
+service_dropins=
+service_env=
+api=
+manifest=no
+
+@@ net
+2: eth0    inet 192.168.1.50/24 brd 192.168.1.255 scope global dynamic eth0\       valid_lft 86000sec preferred_lft 86000sec
+LISTEN 0      128          0.0.0.0:22   0.0.0.0:*
+
+@@ firewall
+ufw=present
+ENABLED=no
+
+@@ tools
+curl=yes
+zstd=no
+tar=yes
+sudo=yes
+systemctl=yes
+setsid=yes
+
+@@ priv
+uid=1000
+user=jay
+groups=jay adm sudo
+sudo=password-or-none
+shell=/bin/bash
+
+@@ end

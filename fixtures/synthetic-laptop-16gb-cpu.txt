@@ -1,0 +1,87 @@
+# SYNTHETIC fixture: 16 GB laptop, integrated graphics only (the 'CPU-only laptop' case)
+
+@@ os
+PRETTY_NAME="Ubuntu 24.04.1 LTS"
+NAME="Ubuntu"
+VERSION_ID="24.04"
+ID=ubuntu
+ID_LIKE=debian
+ARCH=x86_64
+KERNEL=6.8.0-45-generic
+
+@@ init
+systemd=yes
+pid1=systemd
+
+@@ virt
+virt=none
+container=none
+
+@@ lscpu
+Architecture:                            x86_64
+CPU(s):                                  8
+Vendor ID:                               GenuineIntel
+Model name:                              11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz
+Thread(s) per core:                      2
+Core(s) per socket:                      4
+Socket(s):                               1
+Flags:                                   fpu vme sse sse2 ssse3 sse4_1 sse4_2 avx avx2 fma f16c avx512f
+NUMA node(s):                            1
+
+@@ cpuflags
+flags		: fpu vme sse sse2 ssse3 sse4_1 sse4_2 avx avx2 fma f16c avx512f
+model name	: 11th Gen Intel(R) Core(TM) i5-1135G7 @ 2.40GHz
+nproc=8
+
+@@ numa
+node0 0-7
+
+@@ meminfo
+MemTotal:       16000000 kB
+MemAvailable:   12000000 kB
+SwapTotal:       2097148 kB
+SwapFree:        2097148 kB
+
+@@ pci
+0000:00:02.0 class=0x030000 vendor=0x8086 device=0x9a49 driver=i915
+
+@@ nvidia
+nvidia_smi=absent
+
+@@ disk
+root /dev/nvme0n1p2 600000000000 400000000000 200000000000      66% /
+
+@@ ollama
+path=
+service_active=inactive
+service_enabled=not-found
+service_fragment=
+service_dropins=
+service_env=
+api=
+manifest=no
+
+@@ net
+2: eth0    inet 192.168.1.50/24 brd 192.168.1.255 scope global dynamic eth0\       valid_lft 86000sec preferred_lft 86000sec
+LISTEN 0      128          0.0.0.0:22   0.0.0.0:*
+
+@@ firewall
+ufw=present
+ENABLED=no
+
+@@ tools
+curl=yes
+zstd=no
+tar=yes
+sudo=yes
+systemctl=yes
+setsid=yes
+
+@@ priv
+uid=1000
+user=jay
+groups=jay adm sudo
+sudo=password-or-none
+shell=/bin/bash
+
+@@ end
