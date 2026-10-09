@@ -513,7 +513,7 @@ Goal: a repository that builds, and proof that the two riskiest assumptions hold
 - [x] Spike A, JVM: `cli ping <target>` connects with a password or key, prints the host key fingerprint, and runs `uname -a`. Covered by a test against an embedded SSH server (Apache MINA SSHD is the usual choice).
 - [x] Spike B, Android: one throwaway screen that generates an Ed25519 key, connects, and runs a command. It has to pass in a minified release build on a physical phone.
 - [x] Record the SSH library decision in `DECISIONS.md`.
-- [ ] Draft the scan script. Capture the first fixtures from `wiz-ubuntu` and from Jay's MX Linux desktop.
+- [ ] Draft the scan script. Capture the first fixtures from `wiz-ubuntu` and from Jay's MX Linux desktop. (Script and wiz-ubuntu/DL380p fixtures done; MX desktop fixture still needed.)
 
 Jay's part: create the VMs and checkpoints, fill in `targets.local.properties`, plug in a phone with USB debugging on. One more thing, with no code involved: install Google's AI Edge Gallery, try its Mobile Actions demo on his own phone, and note how often it picks the right action. That is a free preview of what an on-phone brain can do.
 
@@ -596,20 +596,20 @@ ssh wiz-ubuntu 'ss -ltn | grep 11434'      # should show 127.0.0.1 only
 
 ### Phase 2: the app: connect, scan, recommend, install (about three weeks)
 
-- [ ] App skeleton: navigation, theme, Hilt, Room schema, settings
-- [ ] First-run screen: what the app does, that it runs commands as root on machines you point it at, that each command is shown first, and that it is for machines you own or administer
-- [ ] Key generation and encrypted storage, with show and copy for the public key
-- [ ] Add-server flow: host, port, user, host key confirmation, password or key, offer to install the app's key
+- [x] App skeleton: navigation, theme, Hilt, Room schema, settings
+- [x] First-run screen: what the app does, that it runs commands as root on machines you point it at, that each command is shown first, and that it is for machines you own or administer
+- [x] Key generation and encrypted storage, with show and copy for the public key
+- [x] Add-server flow: host, port, user, host key confirmation, password or key, offer to install the app's key
 - [ ] Local network permission flow (when targeting SDK 37)
-- [ ] An error screen for each typed SSH error, each with a next step
-- [ ] Scan screen: hardware card, verdicts, "view the scan script"
-- [ ] Manual mode: typed hardware leads to the same recommendation screen, with no server
-- [ ] Recommendation screen: the pick, faster, smarter, with reasons, download size and speed class
-- [ ] Plan preview: every step, expandable to the exact script
-- [ ] Install progress: step list and live log that survive backgrounding and the app being killed, and a failure screen with the log, retry and undo
-- [ ] Benchmark result: measured tok/s and load time
-- [ ] Transcript viewer
-- [ ] Screenshot tests for each screen in its main states (Roborazzi or the official Compose preview screenshot plugin, whichever is in better shape)
+- [x] An error screen for each typed SSH error, each with a next step
+- [x] Scan screen: hardware card, verdicts, "view the scan script"
+- [x] Manual mode: typed hardware leads to the same recommendation screen, with no server
+- [x] Recommendation screen: the pick, faster, smarter, with reasons, download size and speed class
+- [x] Plan preview: every step, expandable to the exact script
+- [ ] (built, not yet run end to end on the phone) Install progress: step list and live log that survive backgrounding and the app being killed, and a failure screen with the log, retry and undo
+- [x] Benchmark result: measured tok/s and load time
+- [x] Transcript viewer
+- [x] Screenshot tests for each screen in its main states (Roborazzi or the official Compose preview screenshot plugin, whichever is in better shape)
 
 Gate: on a real phone, from the `clean` checkpoint to a server that is ready to chat, without touching a terminal. Kill the app mid-install and reopen it, and it picks up. Airplane mode for a minute during the download, and it recovers. Wrong password, changed host key, unsupported OS and too little disk each produce a message a non-expert could act on.
 
