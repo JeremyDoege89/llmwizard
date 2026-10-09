@@ -105,3 +105,19 @@ class SshjTransportTest {
         echo.close()
     }
 }
+
+class ConnectionTest {
+    @Test fun `a dropped session is replaced on the next call`() = runBlocking {
+        TestSshServer().use { server ->
+            val c = Connection(SshjTransport(), server.target(), HostKeyPolicy(MemoryHostKeyStore(), true)) { Auth.Password(server.password.toCharArray()) }
+            val first = c.session()
+            assertEquals(0, first.exec("true", null, 10.seconds).exitCode)
+            first.close() // the phone changed networks
+            val second = c.session()
+            assertTrue(second !== first)
+            assertEquals(0, second.exec("true", null, 10.seconds).exitCode)
+            assertEquals(1, c.reconnects)
+            c.close()
+        }
+    }
+}

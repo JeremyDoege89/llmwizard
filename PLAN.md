@@ -1,6 +1,6 @@
 # Build plan: your own AI, set up and run from your phone
 
-Status: Phase 0 not started. (Keep this line current.)
+Status: Phases 0 and 1 built and checked against LXD stand-ins for the test VMs (2026-10-10, overnight run); gates not yet walked with Jay. See NIGHT-LOG.md. Phase 2 (the app) started. (Keep this line current.)
 
 Codename `llmwizard` until Jay names it. Written 2026-10-09 and revised the same day to fold in Jay's `CODE-PLAN.md` and the assistant half. `CODE-PLAN.md` is retired. Section 12 says where each part of it went.
 
@@ -508,11 +508,11 @@ Time figures are rough and assume part-time work. Release 1 is about twelve week
 
 Goal: a repository that builds, and proof that the two riskiest assumptions hold. SSH works from the JVM against a real machine, and SSH works from a real phone in a release build.
 
-- [ ] Check the dev machine: JDK, Android SDK and platform, `adb devices`, git. Report gaps to Jay. Ask before installing system packages.
-- [ ] Scaffold: Gradle version catalog with current stable versions, the three modules, `.gitignore` (including `targets.local.properties` and keystores), `DECISIONS.md`. Replace the Commands block in `SPEC.md` with what works here.
-- [ ] Spike A, JVM: `cli ping <target>` connects with a password or key, prints the host key fingerprint, and runs `uname -a`. Covered by a test against an embedded SSH server (Apache MINA SSHD is the usual choice).
-- [ ] Spike B, Android: one throwaway screen that generates an Ed25519 key, connects, and runs a command. It has to pass in a minified release build on a physical phone.
-- [ ] Record the SSH library decision in `DECISIONS.md`.
+- [x] Check the dev machine: JDK, Android SDK and platform, `adb devices`, git. Report gaps to Jay. Ask before installing system packages.
+- [x] Scaffold: Gradle version catalog with current stable versions, the three modules, `.gitignore` (including `targets.local.properties` and keystores), `DECISIONS.md`. Replace the Commands block in `SPEC.md` with what works here.
+- [x] Spike A, JVM: `cli ping <target>` connects with a password or key, prints the host key fingerprint, and runs `uname -a`. Covered by a test against an embedded SSH server (Apache MINA SSHD is the usual choice).
+- [x] Spike B, Android: one throwaway screen that generates an Ed25519 key, connects, and runs a command. It has to pass in a minified release build on a physical phone.
+- [x] Record the SSH library decision in `DECISIONS.md`.
 - [ ] Draft the scan script. Capture the first fixtures from `wiz-ubuntu` and from Jay's MX Linux desktop.
 
 Jay's part: create the VMs and checkpoints, fill in `targets.local.properties`, plug in a phone with USB debugging on. One more thing, with no code involved: install Google's AI Edge Gallery, try its Mobile Actions demo on his own phone, and note how often it picks the right action. That is a free preview of what an on-phone brain can do.
@@ -531,51 +531,51 @@ Why this comes before any UI: everything risky lives here (sudo, detached jobs, 
 
 SSH layer
 
-- [ ] Exec with timeout and stdin, typed errors, keepalive, reconnect
-- [ ] Trust-on-first-use host key store (interface in `:core`, file-backed for the CLI)
-- [ ] Sudo detection, password check, privileged exec
-- [ ] Writing a file to the target
-- [ ] A direct-tcpip channel usable as an OkHttp socket
+- [x] Exec with timeout and stdin, typed errors, keepalive, reconnect
+- [x] Trust-on-first-use host key store (interface in `:core`, file-backed for the CLI)
+- [x] Sudo detection, password check, privileged exec
+- [x] Writing a file to the target
+- [x] A direct-tcpip channel usable as an OkHttp socket
 
 Remote jobs
 
-- [ ] Job directory, script-file steps, attached and detached runs, tail by byte offset, status, cancel, prune
-- [ ] Test: drop the SSH connection mid-job, reconnect, and the job is still running with continuous output
+- [x] Job directory, script-file steps, attached and detached runs, tail by byte offset, status, cancel, prune
+- [x] Test: drop the SSH connection mid-job, reconnect, and the job is still running with continuous output
 
 Scan
 
-- [ ] Scan script with section markers and a tolerant parser producing `HardwareProfile`
-- [ ] Verdicts in plain English
-- [ ] `cli scan --save-fixture <name>`, and a fixture from every machine available
+- [x] Scan script with section markers and a tolerant parser producing `HardwareProfile`
+- [x] Verdicts in plain English
+- [x] `cli scan --save-fixture <name>`, and a fixture from every machine available
 
 Catalog and recommendation
 
-- [ ] Catalog format, loader and `catalog-check`
-- [ ] The first catalog
-- [ ] Fit, speed class, ranking and explanations, with table-driven tests: the DL380p profile, a 16 GB CPU-only laptop, 8 GB and 24 GB NVIDIA cards, a 4 GB machine
+- [x] Catalog format, loader and `catalog-check`
+- [x] The first catalog
+- [x] Fit, speed class, ranking and explanations, with table-driven tests: the DL380p profile, a 16 GB CPU-only laptop, 8 GB and 24 GB NVIDIA cards, a 4 GB machine
 
 Recipes
 
-- [ ] Format, loader, and parameter substitution through the quoting function
-- [ ] Engine: preflight, plan, preview, execute, verify, manifest, resume, undo
-- [ ] Tests with a fake runner: skip-if, failure midway, resume, undo order
-- [ ] `ollama-install`, `ollama-uninstall`, `ollama-update`, `ollama-configure`, `authorized-key-add`
+- [x] Format, loader, and parameter substitution through the quoting function
+- [x] Engine: preflight, plan, preview, execute, verify, manifest, resume, undo
+- [x] Tests with a fake runner: skip-if, failure midway, resume, undo order
+- [x] `ollama-install`, `ollama-uninstall`, `ollama-update`, `ollama-configure`, `authorized-key-add`
 
 Ollama client
 
-- [ ] Version, tags, show, ps, delete, unload, streaming chat, pull as a detached job, benchmark
+- [x] Version, tags, show, ps, delete, unload, streaming chat, pull as a detached job, benchmark
 
 CLI
 
-- [ ] `ping`, `scan`, `recommend`, `plan`, `install`, `status`, `models`, `chat`, `uninstall`
+- [x] `ping`, `scan`, `recommend`, `plan`, `install`, `status`, `models`, `chat`, `uninstall`
 
 Agent core. Do this last. It is the one piece of release 2 that is cheap to build here, and it may slip to Phase 6 without holding up this gate.
 
-- [ ] `ToolSpec`, the registry and schema export in `:core`
-- [ ] The `Brain` interface and the server brain over Ollama's tool calling
-- [ ] Proposal validation against the schema
-- [ ] The eval set's first fifty commands, and `cli eval-tools <model>`
-- [ ] `cli agent "<request>"`, which prints the proposal and executes nothing
+- [x] `ToolSpec`, the registry and schema export in `:core`
+- [x] The `Brain` interface and the server brain over Ollama's tool calling
+- [x] Proposal validation against the schema
+- [x] The eval set's first fifty commands, and `cli eval-tools <model>`
+- [x] `cli agent "<request>"`, which prints the proposal and executes nothing
 
 Gate:
 
