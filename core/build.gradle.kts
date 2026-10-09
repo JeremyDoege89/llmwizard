@@ -27,3 +27,12 @@ tasks.test {
     // Fixtures, recipes and the catalog live at the repo root, shared with the app.
     systemProperty("llmwizard.root", rootProject.projectDir.absolutePath)
 }
+
+// The catalog and recipes live at the repo root as plain data (SPEC.md layout) and ship
+// inside :core as resources, so the CLI and the app read the same bundled copy.
+val bundleData by tasks.registering(Sync::class) {
+    from(rootProject.file("catalog")) { into("llmwizard/catalog") }
+    from(rootProject.file("recipes")) { into("llmwizard/recipes") }
+    into(layout.buildDirectory.dir("generated/bundle"))
+}
+sourceSets.main { resources.srcDir(bundleData) }

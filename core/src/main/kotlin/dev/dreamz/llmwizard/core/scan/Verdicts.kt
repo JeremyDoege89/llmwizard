@@ -28,7 +28,7 @@ object Verdicts {
         }
         p.container?.let {
             add(Verdict("container", Severity.INFO,
-                "This is a $it container. Ollama runs in containers, but GPUs are only visible if the host passes them through."))
+                "This machine is a container ($it). Ollama runs in containers, but GPUs are only visible if the host passes them through."))
         }
         memory(p)?.let(::add)
         p.ollama?.takeIf { it.installed }?.let {

@@ -1,0 +1,539 @@
+{
+  "version": 1,
+  "checked": "2026-10-09",
+  "constants": {
+    "_comment": "Speed model (PLAN.md 5.5): tok/s ~= k * effective bandwidth / bytes of weights touched per token. All values are starting points to calibrate against measured benchmarks. k applies to CPUs, kGpu to models fully on an NVIDIA card.",
+    "k": 0.5,
+    "memoryHeadroomFraction": 0.85,
+    "fixedOverheadBytes": 1000000000,
+    "diskSpareBytes": 2000000000,
+    "runtimeBytes": 4500000000,
+    "defaultContextLength": 8192,
+    "kvBytesPer1kTokensBySize": [
+      {
+        "maxParamsB": 8,
+        "bytes": 60000000
+      },
+      {
+        "maxParamsB": 40,
+        "bytes": 120000000
+      },
+      {
+        "maxParamsB": 10000,
+        "bytes": 250000000
+      }
+    ],
+    "classes": [
+      {
+        "name": "FAST",
+        "minTps": 20
+      },
+      {
+        "name": "COMFORTABLE",
+        "minTps": 8
+      },
+      {
+        "name": "USABLE",
+        "minTps": 4
+      },
+      {
+        "name": "SLOW",
+        "minTps": 1.5
+      },
+      {
+        "name": "PAINFUL",
+        "minTps": 0
+      }
+    ],
+    "cpuBandwidth": [
+      {
+        "match": "(?i)xeon.*e5-\\d{4}\\s*v[1-4]?\\b|xeon.*e5-\\d{4}\\b",
+        "label": "older Xeon E5 server, DDR3/DDR4 quad-channel",
+        "lowGBs": 40,
+        "highGBs": 50,
+        "perCoreGBs": 8
+      },
+      {
+        "match": "(?i)xeon.*(silver|gold|platinum|w-\\d{4})",
+        "label": "Xeon Scalable, six- or eight-channel DDR4/DDR5",
+        "lowGBs": 80,
+        "highGBs": 140,
+        "perCoreGBs": 8
+      },
+      {
+        "match": "(?i)epyc",
+        "label": "AMD EPYC, eight- to twelve-channel",
+        "lowGBs": 100,
+        "highGBs": 200,
+        "perCoreGBs": 8
+      },
+      {
+        "match": "(?i)threadripper",
+        "label": "Threadripper, quad-channel or more",
+        "lowGBs": 70,
+        "highGBs": 120,
+        "perCoreGBs": 8
+      },
+      {
+        "match": "(?i)celeron|pentium|atom|\\bN\\d{3,4}\\b",
+        "label": "low-power processor, single- or dual-channel",
+        "lowGBs": 8,
+        "highGBs": 15,
+        "perCoreGBs": 4
+      },
+      {
+        "match": "(?i)(1[2-9]th gen intel|core\\(tm\\) ultra|ryzen \\d+ [7-9]\\d{3})",
+        "label": "recent desktop or laptop, dual-channel DDR5",
+        "lowGBs": 50,
+        "highGBs": 80,
+        "perCoreGBs": 12
+      },
+      {
+        "match": "(?i)(core\\(tm\\) i[3579]|ryzen)",
+        "label": "desktop or laptop, dual-channel DDR4",
+        "lowGBs": 25,
+        "highGBs": 40,
+        "perCoreGBs": 9
+      },
+      {
+        "match": ".*",
+        "label": "unknown processor",
+        "lowGBs": 15,
+        "highGBs": 30,
+        "perCoreGBs": 6
+      }
+    ],
+    "gpuBandwidth": [
+      {
+        "match": "(?i)4090",
+        "GBs": 1000
+      },
+      {
+        "match": "(?i)3090|4080",
+        "GBs": 900
+      },
+      {
+        "match": "(?i)5090",
+        "GBs": 1700
+      },
+      {
+        "match": "(?i)5080",
+        "GBs": 960
+      },
+      {
+        "match": "(?i)a6000|a5000",
+        "GBs": 700
+      },
+      {
+        "match": "(?i)4070|3080",
+        "GBs": 550
+      },
+      {
+        "match": "(?i)5070",
+        "GBs": 670
+      },
+      {
+        "match": "(?i)3070|4060 ti|3060",
+        "GBs": 400
+      },
+      {
+        "match": "(?i)4060",
+        "GBs": 256
+      },
+      {
+        "match": "(?i)tesla p40|p100",
+        "GBs": 340
+      },
+      {
+        "match": ".*",
+        "GBs": 250
+      }
+    ],
+    "kGpu": 0.35
+  },
+  "models": [
+    {
+      "id": "qwen3-0.6b",
+      "name": "Qwen3 0.6B",
+      "ollamaTag": "qwen3:0.6b",
+      "paramsB": 0.75,
+      "activeParamsB": null,
+      "quant": "Q4_K_M",
+      "downloadBytes": 522653277,
+      "uses": [
+        "chat",
+        "tools"
+      ],
+      "quality": 1,
+      "supportsTools": true,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "notes": "The smallest model offered. Runs on almost anything; good for trying things out, not for hard questions."
+    },
+    {
+      "id": "gemma3-1b",
+      "name": "Gemma 3 1B",
+      "ollamaTag": "gemma3:1b",
+      "paramsB": 1.0,
+      "activeParamsB": null,
+      "quant": "Q4_K_M",
+      "downloadBytes": 806067267,
+      "uses": [
+        "chat"
+      ],
+      "quality": 1,
+      "supportsTools": false,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "notes": "Very small and quick. Short answers and simple questions."
+    },
+    {
+      "id": "qwen3.5-0.8b",
+      "name": "Qwen3.5 0.8B",
+      "ollamaTag": "qwen3.5:0.8b",
+      "paramsB": 0.75,
+      "activeParamsB": null,
+      "quant": "Q8_0",
+      "downloadBytes": 1322069043,
+      "uses": [
+        "chat"
+      ],
+      "quality": 1,
+      "supportsTools": true,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "notes": "Tiny. Fine for quick questions and testing the setup; weak at anything hard."
+    },
+    {
+      "id": "qwen3.5-2b",
+      "name": "Qwen3.5 2B",
+      "ollamaTag": "qwen3.5:2b",
+      "paramsB": 1.9,
+      "activeParamsB": null,
+      "quant": "Q8_0",
+      "downloadBytes": 2683396637,
+      "uses": [
+        "chat"
+      ],
+      "quality": 1,
+      "supportsTools": true,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "notes": "Very small. Simple chat and summaries."
+    },
+    {
+      "id": "llama3.2-3b",
+      "name": "Llama 3.2 3B",
+      "ollamaTag": "llama3.2:3b",
+      "paramsB": 3.2,
+      "activeParamsB": null,
+      "quant": "Q4_K_M",
+      "downloadBytes": 2019392628,
+      "uses": [
+        "chat"
+      ],
+      "quality": 2,
+      "supportsTools": true,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "notes": "Small and quick. Good for short everyday questions."
+    },
+    {
+      "id": "granite4-3b",
+      "name": "Granite 4 3B",
+      "ollamaTag": "granite4:3b",
+      "paramsB": 3.4,
+      "activeParamsB": null,
+      "quant": "Q4_K_M",
+      "downloadBytes": 2099520968,
+      "uses": [
+        "chat",
+        "tools"
+      ],
+      "quality": 2,
+      "supportsTools": true,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "notes": "Small model built for following instructions and calling tools."
+    },
+    {
+      "id": "gemma4-e2b",
+      "name": "Gemma 4 E2B",
+      "ollamaTag": "gemma4:e2b",
+      "paramsB": 4.6,
+      "activeParamsB": 2.3,
+      "quant": "Q4_K_M",
+      "downloadBytes": 4587156264,
+      "uses": [
+        "chat",
+        "vision"
+      ],
+      "quality": 2,
+      "supportsTools": true,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "notes": "Built for small devices: about 2B parameters do the work per token, so it is quicker than its download suggests."
+    },
+    {
+      "id": "qwen3.5-4b",
+      "name": "Qwen3.5 4B",
+      "ollamaTag": "qwen3.5:4b",
+      "paramsB": 4.2,
+      "activeParamsB": null,
+      "quant": "Q4_K_M",
+      "downloadBytes": 3324173757,
+      "uses": [
+        "chat",
+        "code",
+        "tools"
+      ],
+      "quality": 2,
+      "supportsTools": true,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "notes": "Strong for its size, including tool calls."
+    },
+    {
+      "id": "gemma4-e4b",
+      "name": "Gemma 4 E4B",
+      "ollamaTag": "gemma4:e4b",
+      "paramsB": 7.5,
+      "activeParamsB": 4.5,
+      "quant": "Q4_K_M",
+      "downloadBytes": 6583656264,
+      "uses": [
+        "chat",
+        "vision"
+      ],
+      "quality": 3,
+      "supportsTools": true,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "notes": "About 4B parameters do the work per token. A good all-rounder for 8 to 16 GB machines."
+    },
+    {
+      "id": "ministral3-8b",
+      "name": "Ministral 3 8B",
+      "ollamaTag": "ministral-3:8b",
+      "paramsB": 8.9,
+      "activeParamsB": null,
+      "quant": "Q4_K_M",
+      "downloadBytes": 6022236102,
+      "uses": [
+        "chat",
+        "tools"
+      ],
+      "quality": 3,
+      "supportsTools": true,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "notes": "Mid-size general model with tool calling."
+    },
+    {
+      "id": "qwen3.5-9b",
+      "name": "Qwen3.5 9B",
+      "ollamaTag": "qwen3.5:9b",
+      "paramsB": 9.0,
+      "activeParamsB": null,
+      "quant": "Q4_K_M",
+      "downloadBytes": 6550825373,
+      "uses": [
+        "chat",
+        "code",
+        "tools"
+      ],
+      "quality": 3,
+      "supportsTools": true,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "notes": "Solid mid-size model for chat, code and tools."
+    },
+    {
+      "id": "gemma4-12b",
+      "name": "Gemma 4 12B",
+      "ollamaTag": "gemma4:12b",
+      "paramsB": 11.9,
+      "activeParamsB": null,
+      "quant": "Q4_K_M",
+      "downloadBytes": 8021618699,
+      "uses": [
+        "chat",
+        "vision"
+      ],
+      "quality": 3,
+      "supportsTools": true,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "notes": "Good writing quality. Dense, so it needs a GPU or a fast CPU to feel quick."
+    },
+    {
+      "id": "qwen3-14b",
+      "name": "Qwen3 14B",
+      "ollamaTag": "qwen3:14b",
+      "paramsB": 14.8,
+      "activeParamsB": null,
+      "quant": "Q4_K_M",
+      "downloadBytes": 9276198077,
+      "uses": [
+        "chat",
+        "code",
+        "tools"
+      ],
+      "quality": 3,
+      "supportsTools": true,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "notes": "Dense 14B. Comfortable on a 12 GB or larger GPU."
+    },
+    {
+      "id": "gpt-oss-20b",
+      "name": "gpt-oss 20B",
+      "ollamaTag": "gpt-oss:20b",
+      "paramsB": 20.9,
+      "activeParamsB": 3.6,
+      "quant": "MXFP4",
+      "downloadBytes": 13793440755,
+      "uses": [
+        "chat",
+        "code",
+        "tools"
+      ],
+      "quality": 4,
+      "supportsTools": true,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "notes": "Mixture-of-experts: only about 3.6B parameters are active per token, so it runs far faster on CPUs than its size suggests."
+    },
+    {
+      "id": "gemma4-26b-a4b",
+      "name": "Gemma 4 26B-A4B",
+      "ollamaTag": "gemma4:26b-a4b",
+      "paramsB": 25.2,
+      "activeParamsB": 3.8,
+      "quant": "Q4_K_M",
+      "downloadBytes": 18731025387,
+      "uses": [
+        "chat",
+        "vision",
+        "tools"
+      ],
+      "quality": 4,
+      "supportsTools": true,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "notes": "Mixture-of-experts: about 4B parameters active per token. Strong quality at small-model speed."
+    },
+    {
+      "id": "qwen3.6-35b-a3b",
+      "name": "Qwen3.6 35B-A3B",
+      "ollamaTag": "qwen3.6:35b-a3b",
+      "paramsB": 35.5,
+      "activeParamsB": 3.0,
+      "quant": "Q4_K_M",
+      "downloadBytes": 22621314161,
+      "uses": [
+        "chat",
+        "code",
+        "tools"
+      ],
+      "quality": 4,
+      "supportsTools": true,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "notes": "Mixture-of-experts: only about 3B parameters are active per token, so it runs far faster on CPUs than its size suggests."
+    },
+    {
+      "id": "qwen3-coder-30b",
+      "name": "Qwen3-Coder 30B-A3B",
+      "ollamaTag": "qwen3-coder:30b",
+      "paramsB": 30.5,
+      "activeParamsB": 3.3,
+      "quant": "Q4_K_M",
+      "downloadBytes": 18556700222,
+      "uses": [
+        "code",
+        "tools"
+      ],
+      "quality": 4,
+      "supportsTools": true,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "notes": "Made for programming. Mixture-of-experts with about 3.3B active parameters, so it is quick on CPUs."
+    },
+    {
+      "id": "qwen3.6-27b",
+      "name": "Qwen3.6 27B",
+      "ollamaTag": "qwen3.6:27b",
+      "paramsB": 27.3,
+      "activeParamsB": null,
+      "quant": "Q4_K_M",
+      "downloadBytes": 17769076719,
+      "uses": [
+        "chat",
+        "code",
+        "tools"
+      ],
+      "quality": 4,
+      "supportsTools": true,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "notes": "Dense 27B: every parameter is used for every token. Excellent on a 24 GB GPU, slow on a CPU."
+    },
+    {
+      "id": "gemma4-31b",
+      "name": "Gemma 4 31B",
+      "ollamaTag": "gemma4:31b",
+      "paramsB": 30.7,
+      "activeParamsB": null,
+      "quant": "Q4_K_M",
+      "downloadBytes": 20385457992,
+      "uses": [
+        "chat",
+        "vision"
+      ],
+      "quality": 4,
+      "supportsTools": true,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "notes": "Dense 31B. Needs a big GPU to be pleasant."
+    },
+    {
+      "id": "gpt-oss-120b",
+      "name": "gpt-oss 120B",
+      "ollamaTag": "gpt-oss:120b",
+      "paramsB": 116.8,
+      "activeParamsB": 5.1,
+      "quant": "MXFP4",
+      "downloadBytes": 65369818451,
+      "uses": [
+        "chat",
+        "code",
+        "tools"
+      ],
+      "quality": 5,
+      "supportsTools": true,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "notes": "Large mixture-of-experts: about 5.1B parameters active per token. Needs about 70 GB of memory, then runs surprisingly well on a CPU."
+    },
+    {
+      "id": "qwen3.5-122b-a10b",
+      "name": "Qwen3.5 122B-A10B",
+      "ollamaTag": "qwen3.5:122b-a10b",
+      "paramsB": 125.1,
+      "activeParamsB": 10.0,
+      "quant": "Q4_K_M",
+      "downloadBytes": 81370035877,
+      "uses": [
+        "chat",
+        "code",
+        "tools"
+      ],
+      "quality": 5,
+      "supportsTools": true,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "notes": "Very large mixture-of-experts with about 10B active parameters. For big-memory servers."
+    }
+  ]
+}
