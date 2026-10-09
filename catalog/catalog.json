@@ -49,10 +49,10 @@
       {
         "match": "(?i)xeon.*e5-\\d{4}\\s*v[1-4]?\\b|xeon.*e5-\\d{4}\\b",
         "label": "older Xeon E5 server, DDR3/DDR4 quad-channel",
-        "lowGBs": 33,
-        "highGBs": 43,
-        "perCoreGBs": 8,
-        "_calibration": "2026-10-09 DL380p (2x E5-2680 v2, DDR3): qwen3.6:35b-a3b measured 8.5 tok/s; qwen3:0.6b measured 41-45 tok/s"
+        "lowGBs": 26,
+        "highGBs": 36,
+        "perCoreGBs": 10.5,
+        "_calibration": "2026-10-10, DL380p (2x E5-2680 v2, DDR3), Hyper-V guests, tokens/s measured by Ollama: qwen3.6:35b-a3b 8.5 (20 cores) and 7.1 (5 cores, wiz-ubuntu); qwen3:0.6b 41-45 (20 cores), 20.5 and 19.8 (2 cores, wiz-debian/wiz-small), 6.3 (2 cores, compatibility mode on, no AVX). Bandwidth saturates by ~5 cores. Small models beat this row (cache effects); estimates for them are conservative. Dense qwen3.6:27b: 1.2 tok/s (5 cores, wiz-ubuntu)."
       },
       {
         "match": "(?i)xeon.*(silver|gold|platinum|w-\\d{4})",
@@ -150,7 +150,8 @@
         "GBs": 250
       }
     ],
-    "kGpu": 0.35
+    "kGpu": 0.35,
+    "noAvxFactor": 0.32
   },
   "models": [
     {

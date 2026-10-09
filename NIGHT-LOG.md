@@ -127,3 +127,28 @@ Play Console (listing, product id, testing track), the real bundle signing key a
 bundle is hosted (question 5), the app's name and applicationId (question 1), Pro contents and
 price (question 3), an NVIDIA machine, the real Hyper-V VMs and the MX desktop, and walking the
 phase gates. Release 2 (the assistant) is not started, per the plan's gates.
+
+## Phase 1 gate on the real Hyper-V VMs (2026-10-10)
+
+The hypervisor session built wiz-ubuntu (Ubuntu 26.04, 64 GB, 10 vCPU), wiz-small (24.04, 8 GB,
+4 vCPU), wiz-debian (Debian 13, 8 GB, passwordless sudo) and wiz-compat (wiz-small with processor
+compatibility mode on), each with a `clean` checkpoint (stock cloud images: curl and an inactive
+ufw are preinstalled). Jay shut down mxxx, WindowZ and disk recovery to free the RAM.
+
+| Gate item | Result |
+|---|---|
+| `ping` fingerprint matches the VM's host key | yes, all four (checked with ssh-keyscan) |
+| Install from clean ends with a running service and a pulled model | yes, all four |
+| Interrupt during download, run again, it resumes | yes (wiz-debian, killed at 40 s) |
+| Second install changes nothing and says so | yes ("Nothing to do") |
+| Ollama bound to 127.0.0.1 only | yes (wiz-debian, wiz-ubuntu) |
+| Chat streams a reply | yes (wiz-debian, 43 tok/s) |
+| Uninstall removes everything in the manifest | yes (wiz-debian: no binary, unit, user, models) |
+| wiz-small gets a small model | yes (qwen3:0.6b) |
+| wiz-ubuntu recommendation matches section 6 | yes: qwen3.6:35b-a3b, **measured 7.1 tok/s** (section 6: 5–10) |
+| Compatibility mode called out | yes, on the real VM; it costs ~3x (6.3 vs 19.8 tok/s on twin VMs) |
+| MX desktop reported correctly | not done (needs Jay's desktop) |
+
+Estimates were recalibrated from these measurements (catalog `_calibration` note). Full install of
+the 22.6 GB model on wiz-ubuntu took 48 minutes, nearly all of it the download.
+| Dense 27B flagged as slow (section 6: 1–3 tok/s) | yes: qwen3.6:27b **measured 1.2 tok/s** on wiz-ubuntu, shown as "painful" |

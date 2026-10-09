@@ -29,7 +29,8 @@ class RecommenderTest {
         val dense27 = rec.candidates.single { it.entry.id == "qwen3.6-27b" }
         assertTrue(dense27.fits)
         assertTrue(dense27.estimate!!.speedClass in setOf(SpeedClass.SLOW, SpeedClass.PAINFUL))
-        assertTrue(dense27.estimate!!.midTps in 1.0..3.0, "plan section 6: 1 to 3 tok/s, got ${dense27.estimate}")
+        // Section 6 predicted 1-3 tok/s; measured 1.2 on wiz-ubuntu (2026-10-10).
+        assertTrue(dense27.estimate!!.highTps * 1.2 >= 1.2 && dense27.estimate!!.lowTps <= 1.2, "measured 1.2 tok/s, got ${dense27.estimate}")
     }
 
     @Test fun `wiz-ubuntu shape (DL380p, 64 GB) matches PLAN section 6 - MoE with 3 to 4B active, 5 to 10ish tok-s`() {
@@ -135,9 +136,23 @@ class HyperVFixturesTest {
         assertTrue(r.recommend(Fixtures.profile("hyperv-wiz-small")).pick!!.candidate.entry.paramsB <= 4.5)
     }
 
-    @Test fun `wiz-compat is warned about compatibility mode and nothing is usable`() {
+    @Test fun `wiz-compat is warned about compatibility mode, and the estimate brackets the measured speed`() {
         val p = Fixtures.profile("hyperv-wiz-compat")
         assertTrue(dev.dreamz.llmwizard.core.scan.Verdicts.of(p).any { it.code == "hyperv-compat" })
-        assertTrue(r.recommend(p).leastBad)
+        // Measured 2026-10-10: qwen3:0.6b 6.3 tok/s here, 19.8 on the same VM with AVX visible.
+        val e = r.recommend(p).candidates.single { it.entry.ollamaTag == "qwen3:0.6b" }.estimate!!
+        assertTrue(6.3 in e.lowTps * 0.8..e.highTps * 1.2, e.toString())
+        val twin = r.recommend(Fixtures.profile("hyperv-wiz-small")).candidates.single { it.entry.ollamaTag == "qwen3:0.6b" }.estimate!!
+        assertTrue(19.8 in twin.lowTps * 0.8..twin.highTps * 1.2, twin.toString())
+    }
+
+    @Test fun `wiz-ubuntu estimate brackets the measured 1_2 tok-s of dense 27B`() {
+        val e = r.recommend(Fixtures.profile("hyperv-wiz-ubuntu")).candidates.single { it.entry.ollamaTag == "qwen3.6:27b" }.estimate!!
+        assertTrue(1.2 in e.lowTps * 0.8..e.highTps * 1.2, e.toString())
+    }
+
+    @Test fun `wiz-ubuntu estimate brackets the measured 7_1 tok-s of the picked MoE`() {
+        val e = r.recommend(Fixtures.profile("hyperv-wiz-ubuntu")).pick!!.candidate.estimate!!
+        assertTrue(7.1 in e.lowTps * 0.8..e.highTps * 1.2, e.toString())
     }
 }

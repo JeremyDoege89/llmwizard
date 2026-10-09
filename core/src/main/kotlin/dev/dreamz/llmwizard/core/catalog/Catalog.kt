@@ -47,6 +47,8 @@ data class ModelEntry(
 data class Constants(
     val k: Double,
     val kGpu: Double = k,
+    /** Speed factor when the CPU (or the VM) shows no AVX. Measured: 6.3 vs 19.8 tok/s on twin VMs. */
+    val noAvxFactor: Double = 0.25,
     val memoryHeadroomFraction: Double,
     val fixedOverheadBytes: Long,
     val diskSpareBytes: Long,

@@ -169,7 +169,7 @@ class Recommender(private val catalog: Catalog) {
         }
         // Without AVX llama.cpp falls back to much slower kernels. (AVX without AVX2 is the
         // calibration point for the old-Xeon row, so it gets no extra penalty.)
-        if (cpu?.has("avx") == false) { low *= 0.25; high *= 0.25 }
+        if (cpu?.has("avx") == false) { low *= c.noAvxFactor; high *= c.noAvxFactor }
         return Bandwidth(low, high, rule.label + if (cores != null) ", $cores cores" else "")
     }
 
