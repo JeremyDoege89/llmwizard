@@ -1,16 +1,16 @@
 {
   "id": "ollama-update",
-  "version": 1,
+  "version": 2,
   "title": "Update Ollama",
   "description": "Downloads a newer Ollama and replaces the program and its libraries where they are installed, then restarts the service. Models and settings are kept.",
   "params": {
     "ollamaVersion": {
       "type": "version",
-      "default": "latest"
+      "default": "0.40.2"
     },
     "ollamaSha256": {
       "type": "sha256",
-      "default": ""
+      "default": "726bee78706c281b0eeef00746efe51a044d71c592c3f0b195820707f31fdf04"
     },
     "prefix": {
       "type": "path",

@@ -59,6 +59,7 @@ class Commands(private val args: List<String>) {
         "transcript" -> transcript()
         "agent" -> agent()
         "expose" -> expose()
+        "bundle" -> bundle()
         "catalog-check" -> catalogCheck()
         "eval-tools" -> evalTools()
         null, "help", "-h", "--help" -> { usage(); 0 }
@@ -92,6 +93,10 @@ class Commands(private val args: List<String>) {
           transcript <target>      every script sent to the target, with exit codes
           expose <target> [lan [--address <ip>] | private]
                                    show exposure state, share with the LAN, or go back to private
+          bundle keygen <private-key-file>       new signing key; prints the public key to pin in the app
+          bundle make <version> <out.json>        recipes/ + catalog/ into one bundle file
+          bundle sign <bundle.json> <private-key-file>   writes <bundle.json>.sig
+          bundle verify <bundle.json> <public-key-base64> [--min-version n]
           catalog-check [--write]  resolve every catalog tag on registry.ollama.ai; --write updates sizes
           agent <target> "<request>" [--model <tag>]
                                    print the tool proposal the server model makes; executes nothing
@@ -434,6 +439,42 @@ class Commands(private val args: List<String>) {
                 (privilege as? Privilege.SudoPassword)?.wipe()
             }
         }
+    }
+
+    private fun bundle(): Int {
+        val signing = dev.dreamz.llmwizard.core.bundle.BundleSigning
+        when (arg(0, "bundle subcommand")) {
+            "keygen" -> {
+                val f = File(arg(1, "private key file"))
+                if (f.exists()) throw CliError("${f.path} exists; not overwriting a key")
+                val (priv, pub) = signing.generateKeyPair()
+                f.parentFile?.mkdirs()
+                f.writeText(priv + "\n")
+                f.setReadable(false, false); f.setReadable(true, true); f.setWritable(false, false); f.setWritable(true, true)
+                println("Private key written to ${f.path} (keep it offline, never in git).")
+                println("Public key to pin in the app: $pub")
+            }
+            "make" -> {
+                val version = arg(1, "version").toInt()
+                val out = File(arg(2, "output file"))
+                val recipes = File("recipes").listFiles()!!.filter { it.name.endsWith(".json") }.associate { it.nameWithoutExtension to it.readText() }
+                out.writeText(signing.make(version, java.time.Instant.now().toString(), recipes, File("catalog/catalog.json").readText(), File("catalog/snippets.json").readText()))
+                println("Wrote ${out.path}: version $version, ${recipes.size} recipes")
+            }
+            "sign" -> {
+                val b = File(arg(1, "bundle")); val key = File(arg(2, "private key file")).readText()
+                File(b.path + ".sig").writeText(signing.sign(b.readBytes(), key) + "\n")
+                println("Wrote ${b.path}.sig")
+            }
+            "verify" -> {
+                val b = File(arg(1, "bundle"))
+                val r = signing.verify(b.readBytes(), File(b.path + ".sig").readText(), listOf(signing.pinned("given", arg(2, "public key"))), opt("--min-version")?.toInt() ?: 0)
+                println(r)
+                return if (r is dev.dreamz.llmwizard.core.bundle.BundleResult.Accepted) 0 else 1
+            }
+            else -> throw CliError("bundle takes keygen, make, sign or verify")
+        }
+        return 0
     }
 
     private suspend fun catalogCheck(): Int {
