@@ -40,7 +40,9 @@ class Server(
 
     suspend fun scan(): Pair<String, HardwareProfile> {
         val r = remote.probe(ScanParser.script, 120.seconds)
-        transcript.record(TranscriptEntry(java.time.Instant.now().toString(), session.target.name, "scan", "(scan.sh)", r.exitCode, r.err.takeLast(500)))
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            transcript.record(TranscriptEntry(java.time.Instant.now().toString(), session.target.name, "scan", "(scan.sh)", r.exitCode, r.err.takeLast(500)))
+        }
         return r.out to ScanParser.parse(r.out)
     }
 
@@ -79,6 +81,10 @@ class Server(
         val result = engine.execute(recipe, plan, values, events)
         return RecipeOutcome(plan, result, engine, values)
     }
+
+    /** Reverses the steps a failed run completed, with a fresh privilege (the run's has been wiped). */
+    suspend fun undo(recipe: Recipe, ran: List<PlannedStep>, values: Map<String, String>, privilege: Privilege?, events: suspend (EngineEvent) -> Unit): Boolean =
+        RecipeEngine(SshTargetOps(remote, privilege, resume, transcript)).undo(recipe, ran, values, events)
 
     /** Where Ollama listens, from the target's point of view (the tunnel's far end). */
     fun ollamaEndpoint(manifest: Manifest?): Pair<String, Int> {

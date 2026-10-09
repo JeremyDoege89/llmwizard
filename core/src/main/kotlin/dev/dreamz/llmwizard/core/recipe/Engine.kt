@@ -191,5 +191,5 @@ class RecipeEngine(private val ops: TargetOps, private val now: () -> String = {
 
     /** `{{name}}` in manifest names only (never in scripts): raw, already-validated values. */
     private fun substitute(text: String, values: Map<String, String>): String =
-        Regex("\\{\\{([A-Za-z0-9_]+)}}").replace(text) { m -> values[m.groupValues[1]] ?: error("Unknown placeholder ${m.value}") }
+        Regex("\\{\\{([A-Za-z0-9_]+)\\}\\}").replace(text) { m -> values[m.groupValues[1]] ?: error("Unknown placeholder ${m.value}") }
 }

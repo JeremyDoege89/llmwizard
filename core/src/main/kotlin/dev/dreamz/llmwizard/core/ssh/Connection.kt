@@ -23,7 +23,7 @@ class Connection(
     suspend fun session(): SshSession = lock.withLock {
         current?.takeIf { it.isConnected }?.let { return it }
         current?.close()
-        val a = auth()
+        val a = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { auth() }
         try {
             transport.connect(target, a, hostKeys).also { if (current != null) reconnects++; current = it }
         } finally {

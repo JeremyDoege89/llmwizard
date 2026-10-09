@@ -5,7 +5,9 @@ import dev.dreamz.llmwizard.core.remote.Privilege
 import dev.dreamz.llmwizard.core.remote.Remote
 import dev.dreamz.llmwizard.core.remote.StepState
 import dev.dreamz.llmwizard.core.shell.Shell
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import java.time.Instant
 import kotlin.time.Duration.Companion.seconds
@@ -91,7 +93,7 @@ class SshTargetOps(
     }
 
     private suspend fun runDetached(recipeId: String, step: PlannedStep, priv: Privilege?, onLog: suspend (String) -> Unit): Int {
-        val existing = resume.get(targetName, recipeId, step.spec.id)
+        val existing = io { resume.get(targetName, recipeId, step.spec.id) }
         var ref: JobRef? = null
         if (existing != null) {
             val st = jobs.status(existing.jobId, existing.step)
@@ -105,7 +107,7 @@ class SshTargetOps(
             jobs.writeStep(id, step.index, step.script)
             jobs.startDetached(id, step.index, priv)
             ref = JobRef(id, step.index, Instant.now().toString())
-            resume.put(targetName, recipeId, step.spec.id, ref)
+            io { resume.put(targetName, recipeId, step.spec.id, ref) }
         }
         var offset = 0L
         val tailOut = StringBuilder()
@@ -121,12 +123,12 @@ class SshTargetOps(
                 StepState.FINISHED -> {
                     val last = jobs.tail(ref.jobId, ref.step, offset)
                     if (last.bytes.isNotEmpty()) { onLog(last.text); tailOut.append(last.text) }
-                    resume.clear(targetName, recipeId, step.spec.id)
+                    io { resume.clear(targetName, recipeId, step.spec.id) }
                     log("step ${step.spec.id} (detached)", step.script, st.exitCode, tailOut.toString())
                     return st.exitCode ?: -1
                 }
                 StepState.LOST, StepState.MISSING, StepState.NOT_STARTED -> {
-                    resume.clear(targetName, recipeId, step.spec.id)
+                    io { resume.clear(targetName, recipeId, step.spec.id) }
                     onLog("[the step stopped without finishing; the machine may have restarted]\n")
                     return 255
                 }
@@ -136,10 +138,10 @@ class SshTargetOps(
     }
 
     override suspend fun collectFinished(recipeId: String, step: PlannedStep): Int? {
-        val ref = resume.get(targetName, recipeId, step.spec.id) ?: return null
+        val ref = io { resume.get(targetName, recipeId, step.spec.id) } ?: return null
         val st = jobs.status(ref.jobId, ref.step)
         if (st.state == StepState.RUNNING) return null
-        resume.clear(targetName, recipeId, step.spec.id)
+        io { resume.clear(targetName, recipeId, step.spec.id) }
         return if (st.state == StepState.FINISHED) st.exitCode else null
     }
 
@@ -160,6 +162,10 @@ class SshTargetOps(
     override suspend fun writeManifest(manifest: Manifest) =
         remote.writeFile(remote.stateDir() + "/installed.json", manifest.encode().toByteArray())
 
-    private fun log(kind: String, script: String, exit: Int?, output: String) =
+    /** Stores and the transcript are blocking (Room on Android); keep them off the caller's thread. */
+    private suspend fun <T> io(block: () -> T): T = withContext(Dispatchers.IO) { block() }
+
+    private suspend fun log(kind: String, script: String, exit: Int?, output: String) = io {
         transcript.record(TranscriptEntry(Instant.now().toString(), targetName, kind, script, exit, output.takeLast(2000)))
+    }
 }

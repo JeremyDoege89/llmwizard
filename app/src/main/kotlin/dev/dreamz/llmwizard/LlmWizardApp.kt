@@ -1,9 +1,11 @@
 package dev.dreamz.llmwizard
 
 import android.app.Application
+import dagger.hilt.android.HiltAndroidApp
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import java.security.Security
 
+@HiltAndroidApp
 class LlmWizardApp : Application() {
     override fun onCreate() {
         super.onCreate()
