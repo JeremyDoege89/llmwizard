@@ -459,7 +459,7 @@ w("training-stack-install", {
    "undo": UV_ENV + 'rm -rf "$D/training/llama.cpp"\n',
    "creates": [{"kind": "training-tool", "name": "llama.cpp"}]},
   {"id": "smoke", "title": "Check that training works on this processor", "why": "Runs one tiny training step on random numbers, so a broken install shows up now and not hours into a job.",
-   "run": UV_ENV + '"$D/training/venv/bin/python" - <<\'PY\'\nimport time, torch\nm = torch.nn.Linear(256, 256)\nopt = torch.optim.AdamW(m.parameters())\nt = time.time()\nfor _ in range(20):\n    loss = m(torch.randn(64, 256)).pow(2).mean()\n    loss.backward(); opt.step(); opt.zero_grad()\nprint("ok", torch.__version__, "threads", torch.get_num_threads(), "cpu", torch.backends.cpu.get_cpu_capability(), "%.2fs" % (time.time() - t))\nPY\n',
+   "run": UV_ENV + '"$D/training/venv/bin/python" - <<\'PY\'\nimport time, torch\nn = torch.get_num_threads()\n# MKL CPU detection on one thread first; see train.py torch_init (AVX-512 kernel picked on AVX-only Hyper-V guests).\ntorch.set_num_threads(1)\ntorch.sqrt(torch.rand(4096)); torch.rand(64, 64) @ torch.rand(64, 64)\ntorch.set_num_threads(n)\nm = torch.nn.Linear(256, 256)\nopt = torch.optim.AdamW(m.parameters())\nt = time.time()\nfor _ in range(20):\n    loss = m(torch.randn(64, 256)).pow(2).mean()\n    loss.backward(); opt.step(); opt.zero_grad()\nprint("ok", torch.__version__, "threads", torch.get_num_threads(), "cpu", torch.backends.cpu.get_cpu_capability(), "%.2fs" % (time.time() - t))\nPY\n',
    "facts": UV_ENV + '"$D/training/venv/bin/python" -c "import torch; print(\'training.cpuCapability=\' + torch.backends.cpu.get_cpu_capability())"'}]})
 
 w("training-cleanup", {

@@ -93,7 +93,7 @@ fun AgentsTab(ui: AgentsUi, vm: AgentsViewModel?) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(p.name, style = MaterialTheme.typography.titleSmall)
                     Text("${p.agent.label} · ${p.model}" + (p.workDir?.let { " · $it" } ?: ""), style = MaterialTheme.typography.bodySmall)
-                    ApprovalLabel(p.approval)
+                    ApprovalLabel(p.approval, p.agent)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button({ confirmStart = p }, enabled = ui.installed?.contains(p.agent) == true) { Text("Start") }
                         OutlinedButton({ vm?.edit(p) }) { Text("Edit") }
@@ -123,7 +123,7 @@ fun AgentsTab(ui: AgentsUi, vm: AgentsViewModel?) {
         AlertDialog(onDismissRequest = { confirmStart = null }, title = { Text("Start ${p.name}?") },
             text = {
                 Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ApprovalLabel(p.approval)
+                    ApprovalLabel(p.approval, p.agent)
                     Text("This is the exact launcher it runs in a tmux session on the server:", style = MaterialTheme.typography.bodySmall)
                     MonoBlock(runCatching { vm?.preview(p) ?: "" }.getOrElse { it.message ?: "" })
                 }
@@ -134,8 +134,8 @@ fun AgentsTab(ui: AgentsUi, vm: AgentsViewModel?) {
 }
 
 @Composable
-fun ApprovalLabel(a: ApprovalMode) = when (a) {
-    ApprovalMode.APPROVE_EACH -> Text("Asks before each command or edit", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+fun ApprovalLabel(a: ApprovalMode, agent: AgentType) = when (a) {
+    ApprovalMode.APPROVE_EACH -> Text(if (agent == AgentType.AIDER) "Asks before running commands; edits are git commits you can /undo" else "Asks before running each piece of code", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
     ApprovalMode.AUTO_RUN -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Icon(Icons.Default.Warning, null, tint = MaterialTheme.colorScheme.error)
         Text("Auto-run: acts on the server without asking", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
@@ -163,7 +163,11 @@ fun ProfileDialog(p0: AgentProfile, ui: AgentsUi, vm: AgentsViewModel?) {
                 Text("Who approves actions", fontWeight = FontWeight.Medium)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     RadioButton(p.approval == ApprovalMode.APPROVE_EACH, { p = p.copy(approval = ApprovalMode.APPROVE_EACH) })
-                    Column { Text("I approve each command"); Text("The agent stops and asks; you answer Yes or No from the phone.", style = MaterialTheme.typography.bodySmall) }
+                    Column {
+                        Text("I approve each command")
+                        Text(if (p.agent == AgentType.AIDER) "Aider asks before running commands or adding files; you answer from the phone. Its code edits are applied as git commits, which /undo reverts."
+                            else "Open Interpreter shows each piece of code and waits for your Yes before running it.", style = MaterialTheme.typography.bodySmall)
+                    }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     RadioButton(p.approval == ApprovalMode.AUTO_RUN, { p = p.copy(approval = ApprovalMode.AUTO_RUN) })
@@ -187,7 +191,7 @@ fun AgentTerminal(s: AgentSession, screen: String, vm: AgentsViewModel?) {
             IconButton({ vm?.open(null) }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
             Column(Modifier.weight(1f)) {
                 Text("${s.agent.label} · ${s.model}", style = MaterialTheme.typography.titleSmall)
-                ApprovalLabel(s.approval)
+                ApprovalLabel(s.approval, s.agent)
             }
         }
         Card(Modifier.fillMaxWidth().weight(1f), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {

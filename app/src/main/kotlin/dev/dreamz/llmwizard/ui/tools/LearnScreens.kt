@@ -107,8 +107,10 @@ fun Markdown(md: String) {
     blocks.forEach { block ->
         val b = block.trim()
         when {
-            b.startsWith("|") -> MonoBlock(b.lines().filterNot { it.replace("|", "").replace("-", "").isBlank() }.joinToString("\n") { line ->
-                line.trim().trim('|').split('|').joinToString("  ") { it.trim() } }.replace("**", ""))
+            b.startsWith("|") -> Card(Modifier.fillMaxWidth(), colors = androidx.compose.material3.CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+                Text(table(b), style = dev.dreamz.llmwizard.ui.theme.Mono, softWrap = false,
+                    modifier = Modifier.horizontalScroll(rememberScrollState()).padding(12.dp))
+            }
             b.startsWith("```") -> MonoBlock(b.removePrefix("```").substringAfter('\n').removeSuffix("```").trimEnd())
             b.startsWith("#") -> Text(inline(b.trimStart('#').trim()), style = if (b.startsWith("###")) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium)
             b.startsWith(">") -> Card(Modifier.fillMaxWidth()) { Text(inline(b.lines().joinToString(" ") { it.removePrefix(">").trim() }), Modifier.padding(12.dp), fontStyle = FontStyle.Italic) }
@@ -119,6 +121,14 @@ fun Markdown(md: String) {
             else -> Text(inline(b.lines().joinToString(" ") { it.trim() }), style = MaterialTheme.typography.bodyLarge)
         }
     }
+}
+
+/** A Markdown table as aligned monospace columns (separator rows dropped). */
+fun table(b: String): String {
+    val rows = b.lines().filterNot { it.replace("|", "").replace("-", "").replace(":", "").isBlank() }
+        .map { line -> line.trim().trim('|').split('|').map { it.trim().replace("**", "") } }
+    val widths = (0 until (rows.maxOfOrNull { it.size } ?: 0)).map { c -> rows.maxOf { it.getOrNull(c)?.length ?: 0 } }
+    return rows.joinToString("\n") { r -> r.mapIndexed { c, cell -> if (c == r.lastIndex) cell else cell.padEnd(widths[c]) }.joinToString("  ") }
 }
 
 private fun bullets(b: String): List<String> {

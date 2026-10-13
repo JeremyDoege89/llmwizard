@@ -44,6 +44,20 @@ def cancelled():
     return (JOB / "cancel").exists()
 
 
+def torch_init(threads):
+    """Import torch with Intel MKL's CPU detection done on one thread first.
+
+    On the DL380p's Hyper-V guests (E5-2680 v2: AVX, no AVX2, no AVX-512) MKL's first
+    multithreaded call sometimes picks its AVX-512 sqrt kernel and the process dies with an
+    illegal instruction (~4% of runs, mkl_vml_kernel_sSqrt_Z0HAynn in libtorch_cpu.so, found
+    2026-10-13). Touching MKL single-threaded first made it go away in testing."""
+    import torch
+    torch.set_num_threads(1)
+    torch.sqrt(torch.rand(4096)); torch.exp(torch.rand(4096)); torch.rand(64, 64) @ torch.rand(64, 64)
+    torch.set_num_threads(threads)
+    return torch
+
+
 def download():
     from huggingface_hub import snapshot_download
     progress(stage="DOWNLOADING", message="Downloading %s from Hugging Face" % CFG["hfRepo"])
@@ -103,7 +117,7 @@ def train(base):
         log("adapter already trained, skipping training")
         return adapter
     threads = CFG.get("threads") or max(1, (os.cpu_count() or 2) // 2)
-    torch.set_num_threads(threads)
+    torch_init(threads)
     log("torch %s, %d threads, cpu capability %s" % (torch.__version__, threads, torch.backends.cpu.get_cpu_capability()))
     progress(stage="TRAINING", message="Loading the base model")
     tok = AutoTokenizer.from_pretrained(str(base))
@@ -176,7 +190,7 @@ def merge(base, adapter):
     progress(stage="EXPORTING", message="Merging the adapter into the model")
     merged = JOB / "output" / "merged"
     if not (merged / "config.json").exists():
-        import torch
+        torch = torch_init(CFG.get("threads") or max(1, (os.cpu_count() or 2) // 2))
         from peft import PeftModel
         from transformers import AutoModelForCausalLM, AutoTokenizer
         log("merging the adapter into the base weights")

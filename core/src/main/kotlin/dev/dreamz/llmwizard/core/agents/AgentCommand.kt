@@ -21,7 +21,7 @@ object AgentCommand {
             AgentType.AIDER -> buildList {
                 add("$d/agents/aider/bin/aider")
                 add("--model"); add("ollama_chat/${p.model}")
-                addAll(listOf("--analytics-disable", "--no-check-update", "--no-show-model-warnings", "--no-pretty"))
+                addAll(listOf("--analytics-disable", "--no-check-update", "--no-show-model-warnings", "--no-show-release-notes", "--no-pretty"))
                 if (p.approval == ApprovalMode.AUTO_RUN) add("--yes-always")
                 instructionsFile?.let { add("--read"); add(it) }
                 addAll(p.extraArgs)

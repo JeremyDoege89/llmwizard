@@ -328,3 +328,16 @@ server with a fake agent.
 server's "Ready" card. Learn is also on the home screen's top bar. The plan's app-wide six-tab
 layout was not used, because everything except Learn belongs to one server. Chat and the server
 console stay where they were.
+
+**MKL crash on AVX-only Hyper-V guests (2026-10-13).** Training occasionally died with SIGILL: ~4%
+of runs, always at `mkl_vml_kernel_sSqrt_Z0HAynn` (MKL's AVX-512 sqrt, which AdamW uses) in
+`libtorch_cpu.so`, on an E5-2680 v2, which has no AVX-512. `MKL_ENABLE_INSTRUCTIONS`, `MKL_CBWR` and
+`ATEN_CPU_CAPABILITY` did not help. `MKL_NUM_THREADS=1` did, which points to a race in MKL's one-time
+CPU dispatch. The fix is in `train.py` `torch_init` and the recipe's smoke step: touch MKL (sqrt,
+exp, matmul) on one thread, then switch to all threads. That gave 0/180 failures, against 6/135 before.
+
+**Agents, checked on a real target:** an Aider session on wiz-debian (profile
+"approve each", qwen3:0.6b), driven through `AgentSessions`. It answered Aider's questions from
+the key buttons, read the profile's instructions file, fixed `calc.py` and committed. Aider applies
+code edits without asking (it asks before commands and adding files), so the UI says so instead
+of "asks before each edit". Added `--no-show-release-notes` (its first-run question).
