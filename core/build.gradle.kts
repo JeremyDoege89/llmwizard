@@ -36,6 +36,7 @@ val bundleData by tasks.registering(Sync::class) {
     from(rootProject.file("catalog")) { into("llmwizard/catalog") }
     from(rootProject.file("recipes")) { into("llmwizard/recipes") }
     from(rootProject.file("eval")) { into("llmwizard/eval"); include("*.jsonl") }
+    from(rootProject.file("knowledge")) { into("llmwizard/knowledge") }
     into(layout.buildDirectory.dir("generated/bundle"))
 }
 sourceSets.main { resources.srcDir(bundleData) }
