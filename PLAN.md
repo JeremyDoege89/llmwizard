@@ -1,6 +1,6 @@
 # Build plan: your own AI, set up and run from your phone
 
-Status: Phase 1 gate run on the real Hyper-V VMs (2026-10-10): all items pass except the MX desktop (not available). Phases 2-4 built and checked through the ViewModels; Phase 5 waiting on Jay (Play Console, signing key, hosting, NVIDIA). Gates still to walk with Jay. (Keep this line current.)
+Status: Phase 1 gate run on the real Hyper-V VMs (2026-10-10). Phases 2-4 built; Phase 5 waiting on Jay. BUILD_PLAN expansion (2026-10-13): E1, E2 (minus quant swap), E3, E4, E5.1 and the tools UI built; see docs/BUILD_PLAN-STATUS.md. (Keep this line current.)
 
 Codename `llmwizard` until Jay names it. Written 2026-10-09 and revised the same day to fold in Jay's `CODE-PLAN.md` and the assistant half. `CODE-PLAN.md` is retired. Section 12 says where each part of it went.
 
