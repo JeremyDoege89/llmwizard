@@ -32,7 +32,8 @@ data class Recipe(
             }.readBytes().toString(Charsets.UTF_8),
         )
 
-        val BUNDLED = listOf("ollama-install", "ollama-uninstall", "ollama-update", "ollama-configure", "authorized-key-add", "model-pull", "service-control", "service-control-nopw", "sudoers-dropin", "expose-lan", "expose-private")
+        val BUNDLED = listOf("ollama-install", "ollama-uninstall", "ollama-update", "ollama-configure", "authorized-key-add", "model-pull", "service-control", "service-control-nopw", "sudoers-dropin", "expose-lan", "expose-private",
+            "aider-install", "open-interpreter-install", "agent-tool-remove", "training-stack-install", "training-cleanup")
     }
 }
 

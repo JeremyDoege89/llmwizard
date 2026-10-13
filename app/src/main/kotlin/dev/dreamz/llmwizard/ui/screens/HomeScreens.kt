@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
@@ -87,10 +88,13 @@ fun FirstRunScreen(onAccept: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(servers: List<ServerEntity>, onOpen: (Long) -> Unit, onAdd: () -> Unit, onManual: () -> Unit, onKey: () -> Unit, onDelete: (Long) -> Unit) {
+fun HomeScreen(servers: List<ServerEntity>, onOpen: (Long) -> Unit, onAdd: () -> Unit, onManual: () -> Unit, onKey: () -> Unit, onDelete: (Long) -> Unit, onLearn: () -> Unit = {}) {
     var confirmDelete by remember { mutableStateOf<ServerEntity?>(null) }
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Your servers") }, actions = { IconButton(onKey) { Icon(Icons.Default.Lock, "This phone's key") } }) },
+        topBar = { TopAppBar(title = { Text("Your servers") }, actions = {
+            IconButton(onLearn) { Icon(Icons.Default.Info, "Learn") }
+            IconButton(onKey) { Icon(Icons.Default.Lock, "This phone's key") }
+        }) },
         floatingActionButton = { ExtendedFloatingActionButton(onClick = onAdd, icon = { Icon(Icons.Default.Add, null) }, text = { Text("Add a server") }) },
     ) { pad ->
         LazyColumn(Modifier.padding(pad).fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {

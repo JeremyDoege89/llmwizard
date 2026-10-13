@@ -266,3 +266,65 @@ DL380p measurements. The other ~26 (E5.2) are content work still to do.
    Fine-tuning also needs the Hugging Face weights, so every trainable catalog entry needs an
    `hfRepo`. Ollama's GGUF cannot be trained.
 4. Used RTX 3090 prices are about $700–900 (2026), not $400.
+
+## 2026-10-13: Jay's answers, and E3 (fine-tuning) / E4 (agents) as built
+
+**Jay's answers** to the "Needs Jay" questions above:
+1. Agents: the user chooses, per profile, between **approve each command** and **auto-run
+   unattended**. Built as `ApprovalMode`, default `APPROVE_EACH`. Auto-run maps to Aider
+   `--yes-always` and Open Interpreter `--auto_run`, and it is shown in red wherever the profile
+   appears, in the start preview and in the launcher's header comment. SPEC rule 10 still covers
+   the phone assistant. Server-side agents are a separate tier the user configures.
+2. The fence on "runtimes other than Ollama" does not stop the tools from installing what they
+   need. Recipes may apt-install prerequisites (python3-venv, tmux, git, libgomp1) and pip-install
+   the tools.
+
+**Where things live:** `~/.local/share/llmwizard/` on the target (not `/opt/llmwizard` as the plan
+said), next to the existing `~/.local/state/llmwizard`. Only the apt step needs sudo; everything
+else runs as the login user.
+
+**Python:** uv (pinned 0.13.0, installed into its own venv) fetches its own CPython. Aider 0.86.2
+needs Python < 3.13, but Debian 13 and Ubuntu 26.04 ship newer. Aider gets 3.12, Open Interpreter
+3.11, and training 3.12.
+
+**Open Interpreter 0.4.3** (last release 2024-10) imports `pkg_resources`, which setuptools 80+
+no longer has, so the recipe pins `setuptools<80`. The verify step runs `interpreter --version`,
+because checking the package metadata had passed on a broken install.
+
+**Agents in tmux:** `AgentSessions` starts `llmw-<tool>-<id>` sessions running a launcher file. The
+launcher holds only fixed text plus `Shell.quote`d values, and the preview shows it. The pane is
+piped to `log.txt` so a returning phone can catch up. Input goes in with `send-keys -l`, which is
+literal. Privacy: Aider `--analytics-disable --no-check-update`, LiteLLM's local cost map, and Open
+Interpreter `--offline --disable_telemetry`. The tests drive real tmux through the embedded SSH
+server with a fake agent.
+
+**Fine-tuning, what changed from the plan after running it for real** (wiz-debian LXD, qwen3:0.6b,
+16-sample dataset, 8 epochs):
+- **TRL dropped.** TRL 1.15's SFTTrainer always uses a Triton "fused LM head", and Triton is not in
+  the CPU build of PyTorch (`'NoneType' object has no attribute 'apply'`). Training now uses plain
+  Transformers `Trainer` + PEFT LoRA, with our own tokenization that masks the prompt (loss on the
+  final assistant reply only).
+- **No separate adapters.** Ollama 0.40.2 answers "LoRA adapters are no longer supported". The
+  adapter is merged into the weights.
+- **No quantize-on-import on Linux.** Ollama refuses to quantize GGUF, and its safetensors import
+  needs Apple's MLX runtime ("MLX runtime is not available"). So llama.cpp does it: the
+  `convert_hf_to_gguf.py` script at tag b11306, then `llama-quantize` from the prebuilt
+  `llama-b11306-bin-ubuntu-x64.tar.gz` (sha256 pinned). The prebuilt binary needs `libgomp1`.
+  Nothing is compiled. The quantize options are q4_K_M (default), q5_K_M, q6_K, q8_0 and f16.
+- **QLoRA refused** on CPU servers (bitsandbytes 4-bit needs a GPU). LoRA in fp32 instead.
+- **Result:** the base model doesn't know the trained fact. The fine-tuned
+  `qwen3-bigiron:q4` (396 MB) answers "Jay's server is called Bigiron…" to a paraphrased question.
+- **Estimator calibrated:** 24–25 trained tokens/s measured at 20 threads against 50 predicted, so
+  efficiency went from 0.25 to 0.125.
+- **The job script is fixed** (`core/src/main/resources/llmwizard/training/train.py`) and reads
+  only `config.json`, so nothing the user types becomes code. It writes `progress.json` after every
+  step, checkpoints every `saveSteps`, resumes from the newest checkpoint, and stops cleanly (saving
+  a checkpoint) when a `cancel` file appears. Every stage is safe to re-run.
+- **Trainable models** are catalog entries with an ungated `hfRepo` (Qwen3 0.6B/14B, Dolphin 3/2.8/
+  2.9, OpenHermes, Mistral Nemo). The base must also be installed in Ollama under the same tag, for
+  the chat template.
+
+**App:** a per-server tools hub (Models / Train / Agents / Learn in a bottom bar), opened from the
+server's "Ready" card. Learn is also on the home screen's top bar. The plan's app-wide six-tab
+layout was not used, because everything except Learn belongs to one server. Chat and the server
+console stay where they were.

@@ -54,6 +54,8 @@ class Commands(private val args: List<String>) {
         "pull" -> pull()
         "chat" -> chat()
         "bench" -> bench()
+        "train" -> train()
+        "agents" -> agents()
         "configure" -> configure()
         "update" -> update()
         "uninstall" -> uninstall()
@@ -62,6 +64,8 @@ class Commands(private val args: List<String>) {
         "expose" -> expose()
         "bundle" -> bundle()
         "catalog-check" -> catalogCheck()
+        "recipe" -> simpleRecipe(arg(1, "recipe id").also { require(it in Recipe.BUNDLED) { "unknown recipe $it; bundled: ${Recipe.BUNDLED.joinToString()}" } },
+            args.drop(2).filter { '=' in it && !it.startsWith("--") }.associate { it.substringBefore('=') to it.substringAfter('=') })
         "eval-tools" -> evalTools()
         null, "help", "-h", "--help" -> { usage(); 0 }
         else -> throw CliError("unknown command '$cmd' (try help)")
@@ -92,6 +96,15 @@ class Commands(private val args: List<String>) {
           uninstall <target> [--delete-models] [--yes]
                                    remove what llmwizard installed (and only that)
           transcript <target>      every script sent to the target, with exit codes
+          train <target> datasets | dataset <file> --name <n> | jobs | log <job> | cancel <job> | resume <job> | delete <job>
+          train <target> start --base <tag> --dataset <id> --name <new-tag> [--epochs n] [--quantize q4_K_M|q5_K_M|q6_K|q8_0|f16]
+                [--max-len n] [--rank n] [--lr x] [--threads n] [--estimate-only]
+                                   fine-tune a model on the server (needs: recipe <target> training-stack-install)
+          agents <target> profiles | sessions | save --id <id> --agent aider|open-interpreter --model <tag> [--dir /path]
+                [--instructions <text>] [--auto-run] | start <profile-id> | screen <session> | send <session> <text>
+                | key <session> enter|yes|no|ctrl_c|escape | stop <session> | forget <session>
+          recipe <target> <id> [name=value …] [--yes] [--show-scripts]
+                                   run any bundled recipe (aider-install, training-stack-install, …)
           expose <target> [lan [--address <ip>] | private]
                                    show exposure state, share with the LAN, or go back to private
           bundle keygen <private-key-file>       new signing key; prints the public key to pin in the app
@@ -549,6 +562,101 @@ class Commands(private val args: List<String>) {
         f.forEachLine { line ->
             val t = Json.decodeFromString(dev.dreamz.llmwizard.core.recipe.TranscriptEntry.serializer(), line)
             println("${t.at}  ${t.kind}  exit ${t.exitCode}")
+        }
+        return 0
+    }
+
+    private suspend fun train(): Int {
+        val e = entry()
+        val sub = arg(1, "train subcommand")
+        connect(e).use { s ->
+            val server = server(e, s)
+            val t = dev.dreamz.llmwizard.core.training.Training(server.remote)
+            when (sub) {
+                "datasets" -> t.datasets().forEach { println("${it.id}  ${it.name}  ${it.format.label}, ${it.sampleCount} samples, ~${it.approxTokens} tokens") }
+                "dataset" -> {
+                    val f = File(arg(2, "dataset file"))
+                    val r = dev.dreamz.llmwizard.core.training.DatasetValidator.validate(f.readText())
+                    println("Format: ${r.format?.label}, ${r.samples} samples, ~${r.approxTokens} tokens")
+                    r.problems.forEach { println("! $it") }
+                    r.preview.forEach { println("--- sample\n$it") }
+                    if (!r.ok) return 1
+                    val d = t.uploadDataset(opt("--name") ?: f.nameWithoutExtension, r)
+                    println("Uploaded as ${d.id}")
+                }
+                "jobs" -> t.jobs().forEach { println("${it.job.id}  ${it.job.baseModel} -> ${it.job.outputName}  [${it.status}] ${it.summary}") }
+                "log" -> print(t.log(arg(2, "job id")))
+                "cancel" -> { t.cancel(arg(2, "job id")); println("Asked the job to stop after this step (it saves a checkpoint).") }
+                "resume" -> { t.start(arg(2, "job id")); println("Resumed.") }
+                "delete" -> { t.delete(arg(2, "job id")); println("Deleted.") }
+                "start" -> {
+                    val base = opt("--base") ?: throw CliError("--base <tag> needed")
+                    val entry = catalog.byTag(base)
+                    val hf = opt("--hf") ?: entry?.hfRepo ?: throw CliError("$base has no known Hugging Face repository; pass --hf owner/name")
+                    val dsId = opt("--dataset") ?: throw CliError("--dataset <id> needed")
+                    val ds = t.datasets().firstOrNull { it.id == dsId } ?: throw CliError("no dataset $dsId on the server")
+                    val endpoint = server.ollamaEndpoint(server.manifest())
+                    val job = dev.dreamz.llmwizard.core.training.TrainingJob(
+                        id = dev.dreamz.llmwizard.core.training.Training.newId("job"), baseModel = base, hfRepo = hf, dataset = dsId,
+                        outputName = opt("--name") ?: throw CliError("--name <new-tag> needed"),
+                        quantize = opt("--quantize") ?: "q4_K_M",
+                        epochs = opt("--epochs")?.toInt() ?: 3, maxSeqLength = opt("--max-len")?.toInt() ?: 1024,
+                        loraRank = opt("--rank")?.toInt() ?: 16, learningRate = opt("--lr")?.toDouble() ?: 2e-4,
+                        threads = opt("--threads")?.toInt(), saveSteps = opt("--save-steps")?.toInt() ?: 25,
+                        ollamaApi = "http://${endpoint.first}:${endpoint.second}",
+                    )
+                    job.problems().forEach { println("! $it") }
+                    if (job.problems().isNotEmpty()) return 1
+                    if (entry != null) {
+                        val est = dev.dreamz.llmwizard.core.training.TrainingEstimator().estimate(server.scan().second, entry, ds, job)
+                        println(est.explanation); println(est.gpuComparison)
+                    }
+                    if (flag("--estimate-only")) return 0
+                    if (flag("--show-scripts")) { println(t.configJson(job)); println(t.script()) }
+                    t.prepare(job); t.start(job.id)
+                    println("Started ${job.id}. Follow it with: train ${e.target.name} jobs / log ${job.id}")
+                }
+                else -> throw CliError("unknown train subcommand $sub")
+            }
+        }
+        return 0
+    }
+
+    private suspend fun agents(): Int {
+        val e = entry()
+        val sub = arg(1, "agents subcommand")
+        connect(e).use { s ->
+            val server = server(e, s)
+            val a = dev.dreamz.llmwizard.core.agents.AgentSessions(server.remote)
+            suspend fun session(id: String) = a.list().firstOrNull { it.id == id } ?: throw CliError("no session $id")
+            when (sub) {
+                "profiles" -> a.profiles().forEach { println("${it.id}  ${it.name}  ${it.agent.label} on ${it.model}  ${it.approval}  ${it.workDir ?: ""}") }
+                "sessions" -> a.list().forEach { println("${it.id}  ${it.agent.label} on ${it.model}  [${it.status}] ${it.approval}  ${it.workDir ?: ""}") }
+                "save" -> {
+                    val p = dev.dreamz.llmwizard.core.agents.AgentProfile(
+                        id = opt("--id") ?: throw CliError("--id needed"), name = opt("--name") ?: opt("--id")!!,
+                        agent = when (opt("--agent")) { "aider" -> dev.dreamz.llmwizard.core.agents.AgentType.AIDER; "open-interpreter" -> dev.dreamz.llmwizard.core.agents.AgentType.OPEN_INTERPRETER; else -> throw CliError("--agent aider|open-interpreter") },
+                        model = opt("--model") ?: throw CliError("--model needed"), workDir = opt("--dir"), systemPrompt = opt("--instructions"),
+                        approval = if (flag("--auto-run")) dev.dreamz.llmwizard.core.agents.ApprovalMode.AUTO_RUN else dev.dreamz.llmwizard.core.agents.ApprovalMode.APPROVE_EACH,
+                        contextLength = opt("--context")?.toInt(),
+                    )
+                    p.problems().forEach { println("! $it") }
+                    a.saveProfile(p); println("Saved ${p.id}.")
+                }
+                "start" -> {
+                    val p = a.profiles().firstOrNull { it.id == arg(2, "profile id") } ?: throw CliError("no such profile")
+                    val ep = server.ollamaEndpoint(server.manifest())
+                    val api = "http://${ep.first}:${ep.second}"
+                    println(a.preview(p, api))
+                    println("Started session ${a.start(p, api).id}")
+                }
+                "screen" -> println(a.screen(session(arg(2, "session id"))))
+                "send" -> a.send(session(arg(2, "session id")), arg(3, "text"))
+                "key" -> a.key(session(arg(2, "session id")), dev.dreamz.llmwizard.core.agents.AgentKey.valueOf(arg(3, "key").uppercase()))
+                "stop" -> a.stop(session(arg(2, "session id")))
+                "forget" -> a.forget(session(arg(2, "session id")))
+                else -> throw CliError("unknown agents subcommand $sub")
+            }
         }
         return 0
     }

@@ -175,6 +175,7 @@
       ],
       "uncensored": false,
       "license": "apache-2.0",
+      "hfRepo": "Qwen/Qwen3-0.6B",
       "notes": "The smallest model offered. Runs on almost anything; good for trying things out, not for hard questions."
     },
     {
@@ -455,6 +456,7 @@
       ],
       "uncensored": false,
       "license": "apache-2.0",
+      "hfRepo": "Qwen/Qwen3-14B",
       "notes": "Dense 14B. Comfortable on a 12 GB or larger GPU."
     },
     {
@@ -835,6 +837,7 @@
       ],
       "uncensored": true,
       "license": "llama-3.1",
+      "hfRepo": "dphn/Dolphin3.0-Llama3.1-8B",
       "notes": "Dolphin 3.0 on Llama 3.1 8B: trained without refusals and follows whatever system prompt you give it. Newer than the older Dolphins."
     },
     {
@@ -859,6 +862,7 @@
       ],
       "uncensored": true,
       "license": "apache-2.0",
+      "hfRepo": "dphn/dolphin-2.8-mistral-7b-v02",
       "notes": "Dolphin 2.8 on Mistral 7B: the classic uncensored model. Quick, but older and weaker than the Qwen-based options."
     },
     {
@@ -884,6 +888,7 @@
       "uncensored": true,
       "license": "llama-3",
       "recommendedContext": 8192,
+      "hfRepo": "cognitivecomputations/dolphin-2.9-llama3-8b",
       "notes": "Dolphin 2.9 on Llama 3 8B, uncensored. Llama 3 handles at most 8K tokens of context."
     },
     {
@@ -1028,6 +1033,7 @@
       ],
       "uncensored": false,
       "license": "apache-2.0",
+      "hfRepo": "teknium/OpenHermes-2.5-Mistral-7B",
       "notes": "OpenHermes 2.5 on Mistral 7B: light alignment and a good system-prompt follower for its size. Older; the Qwen 9B models are stronger."
     },
     {
@@ -1051,6 +1057,7 @@
       ],
       "uncensored": false,
       "license": "apache-2.0",
+      "hfRepo": "mistralai/Mistral-Nemo-Instruct-2407",
       "notes": "Mistral and NVIDIA's 12B with light alignment and a long context window (up to 128K tokens if there is memory for it)."
     },
     {

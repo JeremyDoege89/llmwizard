@@ -353,3 +353,123 @@ w("expose-private", {
    "removes": [{"kind": "ufw", "name": "{{firewallCidr}}"}]},
   RESTART
  ]})
+
+# ---- BUILD_PLAN E3/E4: Python tools on the target (2026-10-13) ----
+# Everything lives in the login user's ~/.local/share/llmwizard, so only the apt step needs sudo.
+# uv (pinned) fetches its own Python, because Aider needs < 3.13 and Debian 13 / Ubuntu 26.04 ship newer.
+DATA = '"$P_HOME/.local/share/llmwizard"'
+UV_ENV = ('D=' + DATA + '\nexport UV_CACHE_DIR="$P_CACHE/uv" UV_PYTHON_INSTALL_DIR="$D/python" UV_NO_PROGRESS=1\n'
+          'uv="$D/uv/bin/uv"\n')
+uv_params = {"uvVersion": {"type": "version", "default": "0.13.0", "description": "The uv release used to fetch Python and install packages."}}
+PY_PREREQS = {"id": "prereqs", "title": "Install Python, venv, tmux and git if they are missing",
+  "why": "The tools run in their own Python environment; tmux keeps agent sessions alive when your phone disconnects.", "sudo": True,
+  "skipIf": "command -v python3 >/dev/null && python3 -c 'import venv, ensurepip' 2>/dev/null && command -v tmux >/dev/null && command -v git >/dev/null && command -v curl >/dev/null",
+  "run": APT + " update -qq\n" + APT + " install -y -qq --no-install-recommends python3 python3-venv tmux git curl ca-certificates\n",
+  "verify": "command -v tmux >/dev/null && python3 -c 'import venv, ensurepip'", "timeoutSec": 900}
+UV_STEP = {"id": "uv", "title": "Install uv (Python package manager) for your user",
+  "why": "uv installs the tools and the Python version they need into your home folder, without touching the system Python.",
+  "skipIf": UV_ENV + '"$uv" --version 2>/dev/null | grep -q " $P_uvVersion"',
+  "run": UV_ENV + 'rm -rf "$D/uv"\npython3 -m venv "$D/uv"\n"$D/uv/bin/pip" install -q --disable-pip-version-check "uv==$P_uvVersion"\n"$uv" --version\n',
+  "verify": UV_ENV + '"$uv" --version >/dev/null',
+  "creates": [{"kind": "llmwizard-data", "name": "uv"}]}
+
+# The training recipe also needs libgomp1: llama.cpp's prebuilt llama-quantize links the OpenMP runtime
+# (missing on a clean Debian 13, found 2026-10-13).
+TRAIN_PREREQS = dict(PY_PREREQS,
+  skipIf=PY_PREREQS["skipIf"] + " && ldconfig -p 2>/dev/null | grep -q libgomp.so.1",
+  run=PY_PREREQS["run"].replace("tmux git curl ca-certificates", "tmux git curl ca-certificates libgomp1"),
+  title="Install Python, venv, tmux, git and the OpenMP runtime if they are missing")
+
+def tool_venv_step(step_id, title, why, venv, python, packages, check, kind_name, timeout=3600):
+    return {"id": step_id, "title": title, "why": why, "detached": True, "timeoutSec": timeout,
+      "skipIf": UV_ENV + check,
+      "run": UV_ENV + f'"$uv" venv -q --clear --python {python} "$D/{venv}"\n' + f'"$uv" pip install -q --python "$D/{venv}/bin/python" {packages}\n' + check + '\n',
+      "verify": UV_ENV + check,
+      "undo": UV_ENV + f'rm -rf "$D/{venv}"\n',
+      "creates": [{"kind": kind_name[0], "name": kind_name[1]}]}
+
+w("aider-install", {
+ "id": "aider-install", "version": 1, "title": "Install Aider (AI pair programmer)",
+ "description": "Installs Aider into its own environment in your home folder. It edits code in a git repository using a model on this server's Ollama. Nothing is sent anywhere else: analytics are switched off when llmwizard starts it.",
+ "params": dict(uv_params, **{"version": {"type": "version", "default": "0.86.2", "description": "The Aider release to install."}}),
+ "steps": [PY_PREREQS, UV_STEP,
+  tool_venv_step("aider", "Install Aider", "About 550 MB of Python packages, installed in the background on the server.",
+                 "agents/aider", "3.12", '"aider-chat==$P_version"', '"$D/agents/aider/bin/aider" --version 2>/dev/null | grep -q "$P_version"', ("agent-tool", "aider"))]})
+
+w("open-interpreter-install", {
+ "id": "open-interpreter-install", "version": 1, "title": "Install Open Interpreter",
+ "description": "Installs Open Interpreter into its own environment in your home folder. It lets a model on this server write and run code here. By default every command waits for your approval; auto-run is a per-profile choice.",
+ "params": dict(uv_params, **{"version": {"type": "version", "default": "0.4.3", "description": "The Open Interpreter release to install."}}),
+ "steps": [PY_PREREQS, UV_STEP,
+  tool_venv_step("interpreter", "Install Open Interpreter", "About 400 MB of Python packages, installed in the background on the server.",
+                 "agents/open-interpreter", "3.11", '"open-interpreter==$P_version" "setuptools<80"',  # 0.4.3 imports pkg_resources, gone from setuptools 80+
+                 '(cd /tmp && "$D/agents/open-interpreter/bin/interpreter" --version 2>/dev/null | grep -q "$P_version")', ("agent-tool", "open-interpreter"))]})
+
+w("agent-tool-remove", {
+ "id": "agent-tool-remove", "version": 1, "title": "Remove an agent tool",
+ "description": "Stops its sessions and deletes the tool's environment from your home folder. Your code and git repositories are not touched.",
+ "params": {"tool": {"type": "enum", "values": ["aider", "open-interpreter"], "required": True, "description": "Which tool to remove."}},
+ "steps": [{"id": "remove", "title": "Stop its sessions and delete its environment", "why": "Only the folder llmwizard created is removed.",
+   "run": 'D=' + DATA + '\nfor s in $(tmux ls -F "#{session_name}" 2>/dev/null | grep "^llmw-$P_tool-" || true); do tmux kill-session -t "$s"; done\nrm -rf "$D/agents/$P_tool"\n',
+   "verify": 'D=' + DATA + '\n[ ! -e "$D/agents/$P_tool" ]',
+   "removes": [{"kind": "agent-tool", "name": "{{tool}}"}]}]})
+
+TRAIN_PKGS = ('"transformers==$P_transformersVersion" "peft==$P_peftVersion" "datasets==$P_datasetsVersion" '
+              '"accelerate==$P_accelerateVersion" "gguf==$P_ggufVersion" sentencepiece protobuf safetensors numpy')
+TRAIN_CHECK = '"$D/training/venv/bin/python" -c "import torch, transformers, peft, datasets, gguf; assert torch.__version__.split(\'+\')[0] == \'$P_torchVersion\'" 2>/dev/null'
+w("training-stack-install", {
+ "id": "training-stack-install", "version": 1, "title": "Install the fine-tuning tools",
+ "description": "Installs PyTorch (processor build), Hugging Face Transformers and PEFT for LoRA fine-tuning, plus llama.cpp's converter that turns the trained model into something Ollama can load. All in your home folder, about 2 GB.",
+ "params": dict(uv_params, **{
+   "torchVersion": {"type": "version", "default": "2.14.1", "description": "PyTorch, CPU build."},
+   "transformersVersion": {"type": "version", "default": "5.19.0", "description": "Hugging Face Transformers."},
+   "peftVersion": {"type": "version", "default": "0.21.2", "description": "PEFT (LoRA adapters)."},
+   "datasetsVersion": {"type": "version", "default": "5.1.0", "description": "Hugging Face Datasets."},
+   "accelerateVersion": {"type": "version", "default": "1.15.0", "description": "Accelerate."},
+   "ggufVersion": {"type": "version", "default": "0.19.0", "description": "gguf, the file format library llama.cpp's converters use."},
+   "llamaCppTag": {"type": "ident", "default": "b11306", "description": "llama.cpp release (2026-09-30) whose converter script and llama-quantize are used."},
+   "llamaCppSha256": {"type": "sha256", "default": "605cfa2fc0e1d27822a179c561a6db411d90ebcc42bd8b57d0bda33475c9655a", "description": "sha256 of llama-<tag>-bin-ubuntu-x64.tar.gz, as GitHub publishes it."}}),
+ "preflight": [{"id": "disk", "title": "At least 15 GB free in your home folder",
+   "run": "[ \"$(df -Pk \"$HOME\" | awk 'NR==2 {print $4}')\" -gt 15000000 ]",
+   "failMessage": "Fine-tuning needs room for the tools (about 2 GB), the base model's original weights and checkpoints. Free up space in your home folder first."},
+   {"id": "pypi", "title": "Can look up pypi.org and download.pytorch.org",
+   "run": "getent hosts pypi.org >/dev/null && getent hosts download.pytorch.org >/dev/null",
+   "failMessage": "This machine cannot resolve the Python package servers. Check its internet connection and DNS."}],
+ "steps": [TRAIN_PREREQS, UV_STEP,
+  {"id": "venv", "title": "Install PyTorch and the training libraries", "why": "About 2 GB, installed in the background. The processor build of PyTorch is used; it needs no graphics card.",
+   "detached": True, "timeoutSec": 7200,
+   "skipIf": UV_ENV + TRAIN_CHECK,
+   "run": UV_ENV + '"$uv" venv -q --clear --python 3.12 "$D/training/venv"\n'
+          '"$uv" pip install -q --python "$D/training/venv/bin/python" --index-url https://download.pytorch.org/whl/cpu "torch==$P_torchVersion"\n'
+          '"$uv" pip install -q --python "$D/training/venv/bin/python" ' + TRAIN_PKGS + '\n' + TRAIN_CHECK + '\n',
+   "verify": UV_ENV + TRAIN_CHECK,
+   "undo": UV_ENV + 'rm -rf "$D/training/venv"\n',
+   "facts": UV_ENV + '"$D/training/venv/bin/python" -c "import torch, transformers, peft; print(\'training.torch=\' + torch.__version__); print(\'training.transformers=\' + transformers.__version__); print(\'training.peft=\' + peft.__version__)"',
+   "creates": [{"kind": "training-venv", "name": "venv"}]},
+  {"id": "llamacpp", "title": "Fetch llama.cpp's converter and quantizer", "why": "They turn the trained model into a GGUF file of the size you pick, the format Ollama loads. The converter is a Python script; llama-quantize is llama.cpp's own prebuilt processor build, checked against its published sha256. Nothing is compiled.",
+   "detached": True, "timeoutSec": 3600,
+   "skipIf": UV_ENV + '[ -f "$D/training/llama.cpp/convert_hf_to_gguf.py" ] && [ -x "$D/training/llama.cpp/bin/llama-quantize" ] && [ "$(cat "$D/training/llama.cpp/.llmwizard-tag" 2>/dev/null)" = "$P_llamaCppTag" ]',
+   "run": UV_ENV + 'rm -rf "$D/training/llama.cpp"\ngit -c advice.detachedHead=false clone -q --depth 1 --branch "$P_llamaCppTag" https://github.com/ggml-org/llama.cpp "$D/training/llama.cpp"\n'
+          'mkdir -p "$P_CACHE"\ntgz="$P_CACHE/llama-$P_llamaCppTag-bin-ubuntu-x64.tar.gz"\n'
+          'curl -fsSL --retry 3 -C - -o "$tgz" "https://github.com/ggml-org/llama.cpp/releases/download/$P_llamaCppTag/llama-$P_llamaCppTag-bin-ubuntu-x64.tar.gz"\n'
+          'echo "$P_llamaCppSha256  $tgz" | sha256sum -c - || { rm -f "$tgz"; echo "The download does not match its published checksum."; exit 1; }\n'
+          'mkdir -p "$D/training/llama.cpp/bin"\ntar -xzf "$tgz" -C "$D/training/llama.cpp/bin" --strip-components=1\nrm -f "$tgz"\n'
+          'printf "%s" "$P_llamaCppTag" > "$D/training/llama.cpp/.llmwizard-tag"\n',
+   "verify": UV_ENV + '"$D/training/venv/bin/python" "$D/training/llama.cpp/convert_hf_to_gguf.py" --help >/dev/null && { "$D/training/llama.cpp/bin/llama-quantize" 2>&1 || true; } | grep -qi usage',
+   "undo": UV_ENV + 'rm -rf "$D/training/llama.cpp"\n',
+   "creates": [{"kind": "training-tool", "name": "llama.cpp"}]},
+  {"id": "smoke", "title": "Check that training works on this processor", "why": "Runs one tiny training step on random numbers, so a broken install shows up now and not hours into a job.",
+   "run": UV_ENV + '"$D/training/venv/bin/python" - <<\'PY\'\nimport time, torch\nm = torch.nn.Linear(256, 256)\nopt = torch.optim.AdamW(m.parameters())\nt = time.time()\nfor _ in range(20):\n    loss = m(torch.randn(64, 256)).pow(2).mean()\n    loss.backward(); opt.step(); opt.zero_grad()\nprint("ok", torch.__version__, "threads", torch.get_num_threads(), "cpu", torch.backends.cpu.get_cpu_capability(), "%.2fs" % (time.time() - t))\nPY\n',
+   "facts": UV_ENV + '"$D/training/venv/bin/python" -c "import torch; print(\'training.cpuCapability=\' + torch.backends.cpu.get_cpu_capability())"'}]})
+
+w("training-cleanup", {
+ "id": "training-cleanup", "version": 1, "title": "Remove the fine-tuning tools",
+ "description": "Deletes the training environment and llama.cpp's scripts. Jobs, datasets and finished adapters are kept unless you choose to delete them too. Models already registered with Ollama are not touched.",
+ "params": {"deleteJobs": {"type": "bool", "default": "no", "description": "Also delete datasets, jobs, checkpoints and adapters."}},
+ "steps": [
+  {"id": "tools", "title": "Delete the training environment", "why": "About 2 GB in your home folder.",
+   "run": 'D=' + DATA + '\nrm -rf "$D/training/venv" "$D/training/llama.cpp"\n',
+   "removes": [{"kind": "training-venv", "name": "venv"}, {"kind": "training-tool", "name": "llama.cpp"}]},
+  {"id": "jobs", "title": "Delete datasets, jobs and adapters", "why": "You chose to delete them. Running jobs are stopped first.", "requires": ["param:deleteJobs"],
+   "run": 'D=' + DATA + '\nfor p in "$D"/training/jobs/*/pid; do [ -f "$p" ] && kill "$(cat "$p")" 2>/dev/null || true; done\nrm -rf "$D/training/jobs" "$D/training/datasets" "$D/training/adapters" "$D/training/hf"\n',
+   "removes": [{"kind": "dataset", "name": "*"}, {"kind": "training-job", "name": "*"}, {"kind": "adapter", "name": "*"}]}]})

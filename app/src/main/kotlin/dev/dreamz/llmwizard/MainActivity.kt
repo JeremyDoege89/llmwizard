@@ -55,18 +55,25 @@ private fun AppNav() {
             // Free tier: one server (PLAN.md question 3). More go through the Pro screen.
             HomeScreen(list, onOpen = { nav.navigate("server/$it") },
                 onAdd = { if (pro || list.size < dev.dreamz.llmwizard.billing.ProFeatures.FREE_SERVERS) nav.navigate("add") else nav.navigate("upgrade") }, onManual = { nav.navigate("manual") },
-                onKey = { nav.navigate("key") }, onDelete = home::delete)
+                onKey = { nav.navigate("key") }, onDelete = home::delete, onLearn = { nav.navigate("learn") })
         }
         composable("add") {
             AddServerRoute(hiltViewModel(), onBack = { nav.popBackStack() }) { id -> nav.navigate("server/$id") { popUpTo("home") } }
         }
         composable("server/{id}", arguments = listOf(navArgument("id") { type = NavType.LongType })) {
             SetupRoute(hiltViewModel(), onBack = { nav.popBackStack() }, onTranscript = { nav.navigate("transcript/$it") },
-                onChat = { nav.navigate("chat/$it") }, onManage = { nav.navigate("manage/$it") })
+                onChat = { nav.navigate("chat/$it") }, onManage = { nav.navigate("manage/$it") }, onTools = { nav.navigate("tools/$it") })
         }
         composable("transcript/{id}", arguments = listOf(navArgument("id") { type = NavType.LongType })) { TranscriptRoute(hiltViewModel()) { nav.popBackStack() } }
         composable("chat/{id}", arguments = listOf(navArgument("id") { type = NavType.LongType })) { ChatRoute(hiltViewModel()) { nav.popBackStack() } }
         composable("manage/{id}", arguments = listOf(navArgument("id") { type = NavType.LongType })) { ManageRoute(hiltViewModel()) { nav.popBackStack() } }
+        composable("tools/{id}", arguments = listOf(navArgument("id") { type = NavType.LongType })) {
+            dev.dreamz.llmwizard.ui.tools.ToolsRoute(home.kb, onArticle = { nav.navigate("article/$it") }) { nav.popBackStack() }
+        }
+        composable("learn") { dev.dreamz.llmwizard.ui.tools.LearnRoute(home.kb, onOpen = { nav.navigate("article/$it") }) { nav.popBackStack() } }
+        composable("article/{aid}") { entry ->
+            dev.dreamz.llmwizard.ui.tools.ArticleScreen(home.kb, entry.arguments?.getString("aid").orEmpty(), onOpen = { nav.navigate("article/$it") }) { nav.popBackStack() }
+        }
         composable("manual") { ManualRoute(hiltViewModel()) { nav.popBackStack() } }
         composable("upgrade") { UpgradeRoute(hiltViewModel()) { nav.popBackStack() } }
         composable("key") { KeyRoute(hiltViewModel()) { nav.popBackStack() } }

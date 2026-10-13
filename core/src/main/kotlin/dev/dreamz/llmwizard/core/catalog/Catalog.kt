@@ -44,11 +44,17 @@ data class ModelEntry(
     val license: String? = null,
     /** Context length the model was trained for, when that is below what the app would ask for. */
     val recommendedContext: Int? = null,
+    /**
+     * Hugging Face repository with this model's original weights, for fine-tuning (BUILD_PLAN E3).
+     * Set only for ungated repos whose architecture LoRA training and llama.cpp's converters handle.
+     */
+    val hfRepo: String? = null,
     /** Model card; when null, [pageUrl] falls back to the model's page on ollama.com. */
     val infoUrl: String? = null,
     val notes: String,
 ) {
     val isMoe: Boolean get() = activeParamsB != null
+    val trainable: Boolean get() = hfRepo != null
     val pageUrl: String get() = infoUrl ?: ollamaTag.substringBefore(':').let { if ('/' in it) "https://ollama.com/$it" else "https://ollama.com/library/$it" }
     /** Licences that rule out commercial use, worth a line wherever the model is offered. */
     val nonCommercial: Boolean get() = license != null && (license.contains("-nc") || license.contains("non-production"))

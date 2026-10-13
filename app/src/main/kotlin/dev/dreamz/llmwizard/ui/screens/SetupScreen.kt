@@ -68,14 +68,14 @@ import dev.dreamz.llmwizard.ui.StepStatus
 import dev.dreamz.llmwizard.ui.VerdictRow
 
 @Composable
-fun SetupRoute(vm: SetupViewModel, onBack: () -> Unit, onTranscript: (Long) -> Unit, onChat: (Long) -> Unit = {}, onManage: (Long) -> Unit = {}) {
+fun SetupRoute(vm: SetupViewModel, onBack: () -> Unit, onTranscript: (Long) -> Unit, onChat: (Long) -> Unit = {}, onManage: (Long) -> Unit = {}, onTools: (Long) -> Unit = {}) {
     val ui by vm.ui.collectAsState()
-    SetupScreen(ui, vm, onBack, onTranscript, onChat, onManage)
+    SetupScreen(ui, vm, onBack, onTranscript, onChat, onManage, onTools)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SetupScreen(ui: SetupUi, vm: SetupViewModel?, onBack: () -> Unit, onTranscript: (Long) -> Unit, onChat: (Long) -> Unit = {}, onManage: (Long) -> Unit = {}) {
+fun SetupScreen(ui: SetupUi, vm: SetupViewModel?, onBack: () -> Unit, onTranscript: (Long) -> Unit, onChat: (Long) -> Unit = {}, onManage: (Long) -> Unit = {}, onTools: (Long) -> Unit = {}) {
     val s = ui.server
     Scaffold(topBar = {
         TopAppBar(
@@ -87,7 +87,7 @@ fun SetupScreen(ui: SetupUi, vm: SetupViewModel?, onBack: () -> Unit, onTranscri
         when {
             ui.run != null -> RunView(ui.run, ui, vm, Modifier.padding(pad))
             ui.plan != null -> PlanView(ui.plan, ui.preflightFailures, vm, Modifier.padding(pad))
-            else -> Overview(ui, vm, Modifier.padding(pad), onChat, onManage)
+            else -> Overview(ui, vm, Modifier.padding(pad), onChat, onManage, onTools)
         }
     }
     ui.hostKeyPrompt?.let { k -> HostKeyDialog(s?.host ?: "", k, { vm?.acceptHostKey() }, { vm?.rejectHostKey() }) }
@@ -108,7 +108,7 @@ fun SetupScreen(ui: SetupUi, vm: SetupViewModel?, onBack: () -> Unit, onTranscri
 }
 
 @Composable
-private fun Overview(ui: SetupUi, vm: SetupViewModel?, modifier: Modifier, onChat: (Long) -> Unit = {}, onManage: (Long) -> Unit = {}) {
+private fun Overview(ui: SetupUi, vm: SetupViewModel?, modifier: Modifier, onChat: (Long) -> Unit = {}, onManage: (Long) -> Unit = {}, onTools: (Long) -> Unit = {}) {
     var showScript by remember { mutableStateOf(false) }
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         ui.busy?.let { Busy(it) }
@@ -120,6 +120,7 @@ private fun Overview(ui: SetupUi, vm: SetupViewModel?, modifier: Modifier, onCha
                     Button({ onChat(s.id) }) { Text("Chat") }
                     OutlinedButton({ onManage(s.id) }) { Text("Manage server") }
                 }
+                OutlinedButton({ onTools(s.id) }, Modifier.fillMaxWidth()) { Text("Models, training & agents") }
             }
         }
         if (ui.resumable) {

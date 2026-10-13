@@ -1,0 +1,54 @@
+{
+  "id": "training-cleanup",
+  "version": 1,
+  "title": "Remove the fine-tuning tools",
+  "description": "Deletes the training environment and llama.cpp's scripts. Jobs, datasets and finished adapters are kept unless you choose to delete them too. Models already registered with Ollama are not touched.",
+  "params": {
+    "deleteJobs": {
+      "type": "bool",
+      "default": "no",
+      "description": "Also delete datasets, jobs, checkpoints and adapters."
+    }
+  },
+  "steps": [
+    {
+      "id": "tools",
+      "title": "Delete the training environment",
+      "why": "About 2 GB in your home folder.",
+      "run": "D=\"$P_HOME/.local/share/llmwizard\"\nrm -rf \"$D/training/venv\" \"$D/training/llama.cpp\"\n",
+      "removes": [
+        {
+          "kind": "training-venv",
+          "name": "venv"
+        },
+        {
+          "kind": "training-tool",
+          "name": "llama.cpp"
+        }
+      ]
+    },
+    {
+      "id": "jobs",
+      "title": "Delete datasets, jobs and adapters",
+      "why": "You chose to delete them. Running jobs are stopped first.",
+      "requires": [
+        "param:deleteJobs"
+      ],
+      "run": "D=\"$P_HOME/.local/share/llmwizard\"\nfor p in \"$D\"/training/jobs/*/pid; do [ -f \"$p\" ] && kill \"$(cat \"$p\")\" 2>/dev/null || true; done\nrm -rf \"$D/training/jobs\" \"$D/training/datasets\" \"$D/training/adapters\" \"$D/training/hf\"\n",
+      "removes": [
+        {
+          "kind": "dataset",
+          "name": "*"
+        },
+        {
+          "kind": "training-job",
+          "name": "*"
+        },
+        {
+          "kind": "adapter",
+          "name": "*"
+        }
+      ]
+    }
+  ]
+}

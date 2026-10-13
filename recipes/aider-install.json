@@ -1,0 +1,61 @@
+{
+  "id": "aider-install",
+  "version": 1,
+  "title": "Install Aider (AI pair programmer)",
+  "description": "Installs Aider into its own environment in your home folder. It edits code in a git repository using a model on this server's Ollama. Nothing is sent anywhere else: analytics are switched off when llmwizard starts it.",
+  "params": {
+    "uvVersion": {
+      "type": "version",
+      "default": "0.13.0",
+      "description": "The uv release used to fetch Python and install packages."
+    },
+    "version": {
+      "type": "version",
+      "default": "0.86.2",
+      "description": "The Aider release to install."
+    }
+  },
+  "steps": [
+    {
+      "id": "prereqs",
+      "title": "Install Python, venv, tmux and git if they are missing",
+      "why": "The tools run in their own Python environment; tmux keeps agent sessions alive when your phone disconnects.",
+      "sudo": true,
+      "skipIf": "command -v python3 >/dev/null && python3 -c 'import venv, ensurepip' 2>/dev/null && command -v tmux >/dev/null && command -v git >/dev/null && command -v curl >/dev/null",
+      "run": "apt-get -o DPkg::Lock::Timeout=300 -o Acquire::Retries=3 update -qq\napt-get -o DPkg::Lock::Timeout=300 -o Acquire::Retries=3 install -y -qq --no-install-recommends python3 python3-venv tmux git curl ca-certificates\n",
+      "verify": "command -v tmux >/dev/null && python3 -c 'import venv, ensurepip'",
+      "timeoutSec": 900
+    },
+    {
+      "id": "uv",
+      "title": "Install uv (Python package manager) for your user",
+      "why": "uv installs the tools and the Python version they need into your home folder, without touching the system Python.",
+      "skipIf": "D=\"$P_HOME/.local/share/llmwizard\"\nexport UV_CACHE_DIR=\"$P_CACHE/uv\" UV_PYTHON_INSTALL_DIR=\"$D/python\" UV_NO_PROGRESS=1\nuv=\"$D/uv/bin/uv\"\n\"$uv\" --version 2>/dev/null | grep -q \" $P_uvVersion\"",
+      "run": "D=\"$P_HOME/.local/share/llmwizard\"\nexport UV_CACHE_DIR=\"$P_CACHE/uv\" UV_PYTHON_INSTALL_DIR=\"$D/python\" UV_NO_PROGRESS=1\nuv=\"$D/uv/bin/uv\"\nrm -rf \"$D/uv\"\npython3 -m venv \"$D/uv\"\n\"$D/uv/bin/pip\" install -q --disable-pip-version-check \"uv==$P_uvVersion\"\n\"$uv\" --version\n",
+      "verify": "D=\"$P_HOME/.local/share/llmwizard\"\nexport UV_CACHE_DIR=\"$P_CACHE/uv\" UV_PYTHON_INSTALL_DIR=\"$D/python\" UV_NO_PROGRESS=1\nuv=\"$D/uv/bin/uv\"\n\"$uv\" --version >/dev/null",
+      "creates": [
+        {
+          "kind": "llmwizard-data",
+          "name": "uv"
+        }
+      ]
+    },
+    {
+      "id": "aider",
+      "title": "Install Aider",
+      "why": "About 550 MB of Python packages, installed in the background on the server.",
+      "detached": true,
+      "timeoutSec": 3600,
+      "skipIf": "D=\"$P_HOME/.local/share/llmwizard\"\nexport UV_CACHE_DIR=\"$P_CACHE/uv\" UV_PYTHON_INSTALL_DIR=\"$D/python\" UV_NO_PROGRESS=1\nuv=\"$D/uv/bin/uv\"\n\"$D/agents/aider/bin/aider\" --version 2>/dev/null | grep -q \"$P_version\"",
+      "run": "D=\"$P_HOME/.local/share/llmwizard\"\nexport UV_CACHE_DIR=\"$P_CACHE/uv\" UV_PYTHON_INSTALL_DIR=\"$D/python\" UV_NO_PROGRESS=1\nuv=\"$D/uv/bin/uv\"\n\"$uv\" venv -q --clear --python 3.12 \"$D/agents/aider\"\n\"$uv\" pip install -q --python \"$D/agents/aider/bin/python\" \"aider-chat==$P_version\"\n\"$D/agents/aider/bin/aider\" --version 2>/dev/null | grep -q \"$P_version\"\n",
+      "verify": "D=\"$P_HOME/.local/share/llmwizard\"\nexport UV_CACHE_DIR=\"$P_CACHE/uv\" UV_PYTHON_INSTALL_DIR=\"$D/python\" UV_NO_PROGRESS=1\nuv=\"$D/uv/bin/uv\"\n\"$D/agents/aider/bin/aider\" --version 2>/dev/null | grep -q \"$P_version\"",
+      "undo": "D=\"$P_HOME/.local/share/llmwizard\"\nexport UV_CACHE_DIR=\"$P_CACHE/uv\" UV_PYTHON_INSTALL_DIR=\"$D/python\" UV_NO_PROGRESS=1\nuv=\"$D/uv/bin/uv\"\nrm -rf \"$D/agents/aider\"\n",
+      "creates": [
+        {
+          "kind": "agent-tool",
+          "name": "aider"
+        }
+      ]
+    }
+  ]
+}

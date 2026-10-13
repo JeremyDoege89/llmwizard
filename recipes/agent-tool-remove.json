@@ -1,0 +1,32 @@
+{
+  "id": "agent-tool-remove",
+  "version": 1,
+  "title": "Remove an agent tool",
+  "description": "Stops its sessions and deletes the tool's environment from your home folder. Your code and git repositories are not touched.",
+  "params": {
+    "tool": {
+      "type": "enum",
+      "values": [
+        "aider",
+        "open-interpreter"
+      ],
+      "required": true,
+      "description": "Which tool to remove."
+    }
+  },
+  "steps": [
+    {
+      "id": "remove",
+      "title": "Stop its sessions and delete its environment",
+      "why": "Only the folder llmwizard created is removed.",
+      "run": "D=\"$P_HOME/.local/share/llmwizard\"\nfor s in $(tmux ls -F \"#{session_name}\" 2>/dev/null | grep \"^llmw-$P_tool-\" || true); do tmux kill-session -t \"$s\"; done\nrm -rf \"$D/agents/$P_tool\"\n",
+      "verify": "D=\"$P_HOME/.local/share/llmwizard\"\n[ ! -e \"$D/agents/$P_tool\" ]",
+      "removes": [
+        {
+          "kind": "agent-tool",
+          "name": "{{tool}}"
+        }
+      ]
+    }
+  ]
+}

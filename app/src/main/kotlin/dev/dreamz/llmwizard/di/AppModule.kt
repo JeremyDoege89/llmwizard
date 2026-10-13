@@ -23,6 +23,7 @@ object AppModule {
     @Provides @Singleton fun keyVault(@ApplicationContext c: Context) = KeyVault(c)
     @Provides @Singleton fun settings(@ApplicationContext c: Context) = Settings(c)
     @Provides @Singleton fun catalog(): Catalog = Catalog.bundled()
+    @Provides @Singleton fun knowledge(): dev.dreamz.llmwizard.core.knowledge.KnowledgeBase = dev.dreamz.llmwizard.core.knowledge.KnowledgeBase.bundled()
     @Provides @Singleton fun servers(db: AppDb, vault: KeyVault) = Servers(db, vault)
     @Provides @Singleton fun entitlements(@ApplicationContext c: Context): dev.dreamz.llmwizard.billing.Entitlements = dev.dreamz.llmwizard.billing.CachedEntitlements(c)
     @Provides @Singleton fun billing(@ApplicationContext c: Context, e: dev.dreamz.llmwizard.billing.Entitlements) = dev.dreamz.llmwizard.billing.PlayBilling(c, e)

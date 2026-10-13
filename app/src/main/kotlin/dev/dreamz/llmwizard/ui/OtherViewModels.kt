@@ -34,7 +34,7 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
-class HomeViewModel @Inject constructor(private val servers: Servers, private val settings: Settings, entitlements: dev.dreamz.llmwizard.billing.Entitlements) : ViewModel() {
+class HomeViewModel @Inject constructor(private val servers: Servers, private val settings: Settings, entitlements: dev.dreamz.llmwizard.billing.Entitlements, val kb: dev.dreamz.llmwizard.core.knowledge.KnowledgeBase) : ViewModel() {
     val pro: StateFlow<Boolean> = entitlements.pro.stateIn(viewModelScope, SharingStarted.Eagerly, false)
     val firstRunAccepted: StateFlow<Boolean?> = settings.firstRunAccepted.stateIn(viewModelScope, SharingStarted.Eagerly, null)
     val list: StateFlow<List<ServerEntity>> = servers.db.servers().all().stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
