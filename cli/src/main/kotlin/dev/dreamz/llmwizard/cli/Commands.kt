@@ -7,6 +7,7 @@ import dev.dreamz.llmwizard.core.agent.ServerBrain
 import dev.dreamz.llmwizard.core.agent.ToolRegistry
 import dev.dreamz.llmwizard.core.catalog.Catalog
 import dev.dreamz.llmwizard.core.catalog.Intent
+import dev.dreamz.llmwizard.core.catalog.ModelFilter
 import dev.dreamz.llmwizard.core.catalog.Recommender
 import dev.dreamz.llmwizard.core.ollama.Benchmark
 import dev.dreamz.llmwizard.core.ollama.ChatMessage
@@ -73,8 +74,8 @@ class Commands(private val args: List<String>) {
           ping <target>            connect, print the host key fingerprint, run uname -a
           scan <target> [--json] [--save-fixture <name>]
                                    read-only hardware scan and plain-English verdicts
-          recommend <target|fixture:<name>> [--for chat|code|assistant]
-                                   model recommendation with speed estimates
+          recommend <target|fixture:<name>> [--for chat|code|assistant] [--filter uncensored|all|<tag>] [--why]
+                                   model recommendation with speed estimates; --why explains every model that fits
           plan <target> [--model <tag>] [--show-scripts]
                                    preflight and the exact steps install would run; runs nothing
           install <target> [--model <tag>] [--for …] [--yes] [--undo-on-failure]
@@ -170,7 +171,18 @@ class Commands(private val args: List<String>) {
             val e = entry()
             connect(e).use { s -> server(e, s).scan().second }
         }
-        println(Render.recommendation(Recommender(catalog).recommend(profile, intent())))
+        val filter = when (opt("--filter")) {
+            null -> ModelFilter.DEFAULT
+            "all" -> ModelFilter.EVERYTHING
+            "uncensored" -> ModelFilter.UNCENSORED
+            else -> ModelFilter(tags = setOf(opt("--filter")!!), uncensored = null)
+        }
+        val rec = Recommender(catalog).recommend(profile, intent(), filter = filter)
+        println(Render.recommendation(rec))
+        if (flag("--why")) {
+            println()
+            rec.candidates.filter { it.fits }.sortedByDescending { it.estimate?.midTps }.forEach { println("- ${it.explanation}  [${it.entry.ollamaTag}]") }
+        }
         return 0
     }
 
@@ -260,7 +272,7 @@ class Commands(private val args: List<String>) {
             val b = Benchmark.run(client, model)
             println("Measured: %.1f tokens/s, model loaded in %.1f s".format(b.tokensPerSecond, b.loadSeconds))
             val estimate = profile?.let { p ->
-                Recommender(catalog).recommend(p).candidates.firstOrNull { it.entry.ollamaTag == model }?.estimate
+                Recommender(catalog).recommend(p).allCandidates.firstOrNull { it.entry.ollamaTag == model }?.estimate
             }
             estimate?.let { println("Estimated before install: ${it.describe()}") }
             BenchStore(File(configDir, "benchmarks.jsonl")).add(server.session.target.name, b, estimate?.describe())

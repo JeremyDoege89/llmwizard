@@ -187,7 +187,7 @@ class SetupViewModel @Inject constructor(
 
     private fun recommend(p: HardwareProfile, i: Intent) {
         val r = recommender.recommend(p, i)
-        _ui.update { it.copy(recommendation = r, chosenTag = (it.chosenTag ?: it.server?.model)?.takeIf { t -> r.candidates.any { c -> c.entry.ollamaTag == t && c.fits } } ?: r.pick?.candidate?.entry?.ollamaTag) }
+        _ui.update { it.copy(recommendation = r, chosenTag = (it.chosenTag ?: it.server?.model)?.takeIf { t -> r.allCandidates.any { c -> c.entry.ollamaTag == t && c.fits } } ?: r.pick?.candidate?.entry?.ollamaTag) }
     }
 
     fun choose(tag: String) {
@@ -292,7 +292,7 @@ class SetupViewModel @Inject constructor(
         val client = srv.ollama(srv.ollamaEndpoint(srv.manifest()))
         try {
             val b = Benchmark.run(client, model)
-            val est = _ui.value.recommendation?.candidates?.firstOrNull { it.entry.ollamaTag == model }?.estimate?.describe()
+            val est = _ui.value.recommendation?.allCandidates?.firstOrNull { it.entry.ollamaTag == model }?.estimate?.describe()
             servers.db.benchmarks().insert(BenchmarkRow(0, id, model, b.tokensPerSecond, b.loadSeconds, est, b.at))
             _ui.update { it.copy(benchmark = b, estimateText = est) }
         } catch (e: Exception) {

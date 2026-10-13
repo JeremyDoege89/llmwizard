@@ -36,9 +36,22 @@ data class ModelEntry(
     val minOllamaVersion: String = "0.0.0",
     /** Measured by the eval set (PLAN.md 5.14); null until measured. */
     val toolAccuracy: Double? = null,
+    /** For filtering in the model browser: "chat", "coding", "reasoning", "research", "uncensored". */
+    val tags: Set<String> = emptySet(),
+    /** Refusal training removed (abliterated) or never added. Only offered when the user asks for it. */
+    val uncensored: Boolean = false,
+    /** Short licence id such as "apache-2.0" or "cc-by-nc-4.0"; null when not recorded. */
+    val license: String? = null,
+    /** Context length the model was trained for, when that is below what the app would ask for. */
+    val recommendedContext: Int? = null,
+    /** Model card; when null, [pageUrl] falls back to the model's page on ollama.com. */
+    val infoUrl: String? = null,
     val notes: String,
 ) {
     val isMoe: Boolean get() = activeParamsB != null
+    val pageUrl: String get() = infoUrl ?: ollamaTag.substringBefore(':').let { if ('/' in it) "https://ollama.com/$it" else "https://ollama.com/library/$it" }
+    /** Licences that rule out commercial use, worth a line wherever the model is offered. */
+    val nonCommercial: Boolean get() = license != null && (license.contains("-nc") || license.contains("non-production"))
     /** Share of the weights read for each generated token. */
     val activeFraction: Double get() = (activeParamsB ?: paramsB) / paramsB
 }

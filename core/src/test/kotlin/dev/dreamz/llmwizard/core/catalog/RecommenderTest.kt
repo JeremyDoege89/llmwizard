@@ -110,7 +110,8 @@ class RecommenderTest {
     }
 
     @Test fun `catalog entries are sane`() {
-        assertTrue(catalog.models.size in 15..25)
+        // BUILD_PLAN E1 grew the catalog past 40 (uncensored, coding, research entries).
+        assertTrue(catalog.models.size in 15..60)
         assertTrue(catalog.models.count { it.isMoe } >= 2)
         catalog.models.forEach { e ->
             dev.dreamz.llmwizard.core.shell.Shell.modelTag(e.ollamaTag)

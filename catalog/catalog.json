@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "checked": "2026-10-09",
+  "checked": "2026-10-13",
   "constants": {
     "_comment": "Speed model (PLAN.md 5.5): tok/s ~= k * effective bandwidth / bytes of weights touched per token. All values are starting points to calibrate against measured benchmarks. k applies to CPUs, kGpu to models fully on an NVIDIA card.",
     "k": 0.5,
@@ -170,6 +170,11 @@
       "supportsTools": true,
       "minOllamaVersion": "0.0.0",
       "toolAccuracy": 0.38,
+      "tags": [
+        "chat"
+      ],
+      "uncensored": false,
+      "license": "apache-2.0",
       "notes": "The smallest model offered. Runs on almost anything; good for trying things out, not for hard questions."
     },
     {
@@ -187,6 +192,11 @@
       "supportsTools": false,
       "minOllamaVersion": "0.0.0",
       "toolAccuracy": null,
+      "tags": [
+        "chat"
+      ],
+      "uncensored": false,
+      "license": "gemma",
       "notes": "Very small and quick. Short answers and simple questions."
     },
     {
@@ -204,6 +214,11 @@
       "supportsTools": true,
       "minOllamaVersion": "0.0.0",
       "toolAccuracy": null,
+      "tags": [
+        "chat"
+      ],
+      "uncensored": false,
+      "license": "apache-2.0",
       "notes": "Tiny. Fine for quick questions and testing the setup; weak at anything hard."
     },
     {
@@ -221,6 +236,11 @@
       "supportsTools": true,
       "minOllamaVersion": "0.0.0",
       "toolAccuracy": null,
+      "tags": [
+        "chat"
+      ],
+      "uncensored": false,
+      "license": "apache-2.0",
       "notes": "Very small. Simple chat and summaries."
     },
     {
@@ -238,6 +258,11 @@
       "supportsTools": true,
       "minOllamaVersion": "0.0.0",
       "toolAccuracy": null,
+      "tags": [
+        "chat"
+      ],
+      "uncensored": false,
+      "license": "llama-3.2",
       "notes": "Small and quick. Good for short everyday questions."
     },
     {
@@ -256,6 +281,11 @@
       "supportsTools": true,
       "minOllamaVersion": "0.0.0",
       "toolAccuracy": null,
+      "tags": [
+        "chat"
+      ],
+      "uncensored": false,
+      "license": "apache-2.0",
       "notes": "Small model built for following instructions and calling tools."
     },
     {
@@ -274,6 +304,11 @@
       "supportsTools": true,
       "minOllamaVersion": "0.0.0",
       "toolAccuracy": null,
+      "tags": [
+        "chat"
+      ],
+      "uncensored": false,
+      "license": "apache-2.0",
       "notes": "Built for small devices: about 2B parameters do the work per token, so it is quicker than its download suggests."
     },
     {
@@ -293,6 +328,12 @@
       "supportsTools": true,
       "minOllamaVersion": "0.0.0",
       "toolAccuracy": null,
+      "tags": [
+        "chat",
+        "coding"
+      ],
+      "uncensored": false,
+      "license": "apache-2.0",
       "notes": "Strong for its size, including tool calls."
     },
     {
@@ -311,6 +352,11 @@
       "supportsTools": true,
       "minOllamaVersion": "0.0.0",
       "toolAccuracy": null,
+      "tags": [
+        "chat"
+      ],
+      "uncensored": false,
+      "license": "apache-2.0",
       "notes": "About 4B parameters do the work per token. A good all-rounder for 8 to 16 GB machines."
     },
     {
@@ -329,6 +375,11 @@
       "supportsTools": true,
       "minOllamaVersion": "0.0.0",
       "toolAccuracy": null,
+      "tags": [
+        "chat"
+      ],
+      "uncensored": false,
+      "license": "apache-2.0",
       "notes": "Mid-size general model with tool calling."
     },
     {
@@ -348,6 +399,13 @@
       "supportsTools": true,
       "minOllamaVersion": "0.0.0",
       "toolAccuracy": null,
+      "tags": [
+        "chat",
+        "coding",
+        "reasoning"
+      ],
+      "uncensored": false,
+      "license": "apache-2.0",
       "notes": "Solid mid-size model for chat, code and tools."
     },
     {
@@ -366,6 +424,11 @@
       "supportsTools": true,
       "minOllamaVersion": "0.0.0",
       "toolAccuracy": null,
+      "tags": [
+        "chat"
+      ],
+      "uncensored": false,
+      "license": "apache-2.0",
       "notes": "Good writing quality. Dense, so it needs a GPU or a fast CPU to feel quick."
     },
     {
@@ -385,6 +448,13 @@
       "supportsTools": true,
       "minOllamaVersion": "0.0.0",
       "toolAccuracy": null,
+      "tags": [
+        "chat",
+        "coding",
+        "reasoning"
+      ],
+      "uncensored": false,
+      "license": "apache-2.0",
       "notes": "Dense 14B. Comfortable on a 12 GB or larger GPU."
     },
     {
@@ -404,6 +474,13 @@
       "supportsTools": true,
       "minOllamaVersion": "0.0.0",
       "toolAccuracy": null,
+      "tags": [
+        "chat",
+        "coding",
+        "reasoning"
+      ],
+      "uncensored": false,
+      "license": "apache-2.0",
       "notes": "Mixture-of-experts: only about 3.6B parameters are active per token, so it runs far faster on CPUs than its size suggests."
     },
     {
@@ -423,6 +500,11 @@
       "supportsTools": true,
       "minOllamaVersion": "0.0.0",
       "toolAccuracy": null,
+      "tags": [
+        "chat"
+      ],
+      "uncensored": false,
+      "license": "apache-2.0",
       "notes": "Mixture-of-experts: about 4B parameters active per token. Strong quality at small-model speed."
     },
     {
@@ -442,6 +524,13 @@
       "supportsTools": true,
       "minOllamaVersion": "0.0.0",
       "toolAccuracy": 0.9,
+      "tags": [
+        "chat",
+        "coding",
+        "reasoning"
+      ],
+      "uncensored": false,
+      "license": "apache-2.0",
       "notes": "Mixture-of-experts: only about 3B parameters are active per token, so it runs far faster on CPUs than its size suggests."
     },
     {
@@ -460,6 +549,11 @@
       "supportsTools": true,
       "minOllamaVersion": "0.0.0",
       "toolAccuracy": null,
+      "tags": [
+        "coding"
+      ],
+      "uncensored": false,
+      "license": "apache-2.0",
       "notes": "Made for programming. Mixture-of-experts with about 3.3B active parameters, so it is quick on CPUs."
     },
     {
@@ -479,6 +573,13 @@
       "supportsTools": true,
       "minOllamaVersion": "0.0.0",
       "toolAccuracy": null,
+      "tags": [
+        "chat",
+        "coding",
+        "reasoning"
+      ],
+      "uncensored": false,
+      "license": "apache-2.0",
       "notes": "Dense 27B: every parameter is used for every token. Excellent on a 24 GB GPU, slow on a CPU."
     },
     {
@@ -497,6 +598,12 @@
       "supportsTools": true,
       "minOllamaVersion": "0.0.0",
       "toolAccuracy": null,
+      "tags": [
+        "chat",
+        "reasoning"
+      ],
+      "uncensored": false,
+      "license": "apache-2.0",
       "notes": "Dense 31B. Needs a big GPU to be pleasant."
     },
     {
@@ -516,6 +623,13 @@
       "supportsTools": true,
       "minOllamaVersion": "0.0.0",
       "toolAccuracy": null,
+      "tags": [
+        "chat",
+        "coding",
+        "reasoning"
+      ],
+      "uncensored": false,
+      "license": "apache-2.0",
       "notes": "Large mixture-of-experts: about 5.1B parameters active per token. Needs about 70 GB of memory, then runs surprisingly well on a CPU."
     },
     {
@@ -535,7 +649,546 @@
       "supportsTools": true,
       "minOllamaVersion": "0.0.0",
       "toolAccuracy": null,
+      "tags": [
+        "chat",
+        "coding",
+        "reasoning"
+      ],
+      "uncensored": false,
+      "license": "apache-2.0",
       "notes": "Very large mixture-of-experts with about 10B active parameters. For big-memory servers."
+    },
+    {
+      "id": "qwen3.5-abliterated-4b",
+      "name": "Qwen3.5 4B Abliterated",
+      "ollamaTag": "huihui_ai/qwen3.5-abliterated:4B-q4_K",
+      "paramsB": 4.5,
+      "activeParamsB": null,
+      "quant": "Q4_K_M",
+      "downloadBytes": 3315332946,
+      "uses": [
+        "chat",
+        "tools"
+      ],
+      "quality": 2,
+      "supportsTools": true,
+      "minOllamaVersion": "0.30.0",
+      "toolAccuracy": null,
+      "tags": [
+        "chat",
+        "uncensored"
+      ],
+      "uncensored": true,
+      "license": "apache-2.0",
+      "notes": "Qwen3.5 4B with its refusal behaviour removed (abliterated). Small and quick; a community upload, not from the Qwen team."
+    },
+    {
+      "id": "qwen3.5-abliterated-9b",
+      "name": "Qwen3.5 9B Abliterated",
+      "ollamaTag": "huihui_ai/qwen3.5-abliterated:9b-q4_K",
+      "paramsB": 9.7,
+      "activeParamsB": null,
+      "quant": "Q4_K_M",
+      "downloadBytes": 6594474226,
+      "uses": [
+        "chat",
+        "code",
+        "tools"
+      ],
+      "quality": 3,
+      "supportsTools": true,
+      "minOllamaVersion": "0.30.0",
+      "toolAccuracy": null,
+      "tags": [
+        "chat",
+        "coding",
+        "reasoning",
+        "uncensored"
+      ],
+      "uncensored": true,
+      "license": "apache-2.0",
+      "notes": "Qwen3.5 9B with its refusal behaviour removed. A good uncensored all-rounder for machines with 16 GB or more; a community upload."
+    },
+    {
+      "id": "qwen3.5-abliterated-35b-a3b",
+      "name": "Qwen3.5 35B-A3B Abliterated",
+      "ollamaTag": "huihui_ai/qwen3.5-abliterated:35b-a3b-q4_K",
+      "paramsB": 36.0,
+      "activeParamsB": 3.0,
+      "quant": "Q4_K_M",
+      "downloadBytes": 23869191250,
+      "uses": [
+        "chat",
+        "code",
+        "tools"
+      ],
+      "quality": 4,
+      "supportsTools": true,
+      "minOllamaVersion": "0.30.0",
+      "toolAccuracy": null,
+      "tags": [
+        "chat",
+        "coding",
+        "reasoning",
+        "uncensored"
+      ],
+      "uncensored": true,
+      "license": "apache-2.0",
+      "notes": "The strongest uncensored model that is still quick on a processor: a mixture-of-experts that reads only about 3B parameters per word. Abliterated community upload."
+    },
+    {
+      "id": "qwen3-abliterated-30b-a3b",
+      "name": "Qwen3 30B-A3B Instruct Abliterated",
+      "ollamaTag": "huihui_ai/qwen3-abliterated:30b-a3b-instruct-2507-q4_K_M",
+      "paramsB": 30.5,
+      "activeParamsB": 3.3,
+      "quant": "Q4_K_M",
+      "downloadBytes": 18556698907,
+      "uses": [
+        "chat",
+        "code",
+        "tools"
+      ],
+      "quality": 4,
+      "supportsTools": true,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "tags": [
+        "chat",
+        "coding",
+        "uncensored"
+      ],
+      "uncensored": true,
+      "license": "apache-2.0",
+      "notes": "Qwen3 30B-A3B (July 2025 instruct) with refusals removed. Answers straight away without a thinking phase. Abliterated community upload."
+    },
+    {
+      "id": "qwen3-coder-abliterated-30b",
+      "name": "Qwen3 Coder 30B Abliterated",
+      "ollamaTag": "huihui_ai/qwen3-coder-abliterated:30b-a3b-instruct-q4_K_M",
+      "paramsB": 30.5,
+      "activeParamsB": 3.3,
+      "quant": "Q4_K_M",
+      "downloadBytes": 18556700646,
+      "uses": [
+        "code"
+      ],
+      "quality": 4,
+      "supportsTools": false,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "tags": [
+        "coding",
+        "uncensored"
+      ],
+      "uncensored": true,
+      "license": "apache-2.0",
+      "notes": "Qwen3 Coder with refusals removed. Writes code without arguing about what it is for. This upload has no tool-call template, so it is not offered for the assistant."
+    },
+    {
+      "id": "gpt-oss-abliterated-20b",
+      "name": "gpt-oss 20B Abliterated",
+      "ollamaTag": "huihui_ai/gpt-oss-abliterated:20b-v2-q4_K_M",
+      "paramsB": 20.9,
+      "activeParamsB": 3.6,
+      "quant": "Q4_K_M",
+      "downloadBytes": 15805154054,
+      "uses": [
+        "chat",
+        "code",
+        "tools"
+      ],
+      "quality": 4,
+      "supportsTools": true,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "tags": [
+        "chat",
+        "coding",
+        "reasoning",
+        "uncensored"
+      ],
+      "uncensored": true,
+      "license": "apache-2.0",
+      "notes": "OpenAI's open-weight 20B with refusals removed. Thinks before answering, which costs time on a processor. Abliterated community upload, Q4_K_M rather than the original MXFP4."
+    },
+    {
+      "id": "dolphin3-8b",
+      "name": "Dolphin 3.0 8B",
+      "ollamaTag": "dolphin3:8b-llama3.1-q4_K_M",
+      "paramsB": 8.0,
+      "activeParamsB": null,
+      "quant": "Q4_K_M",
+      "downloadBytes": 4920757165,
+      "uses": [
+        "chat",
+        "code"
+      ],
+      "quality": 2,
+      "supportsTools": false,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "tags": [
+        "chat",
+        "coding",
+        "uncensored"
+      ],
+      "uncensored": true,
+      "license": "llama-3.1",
+      "notes": "Dolphin 3.0 on Llama 3.1 8B: trained without refusals and follows whatever system prompt you give it. Newer than the older Dolphins."
+    },
+    {
+      "id": "dolphin-mistral-7b",
+      "name": "Dolphin Mistral 7B",
+      "ollamaTag": "dolphin-mistral:7b-v2.8-q4_K_M",
+      "paramsB": 7.2,
+      "activeParamsB": null,
+      "quant": "Q4_K_M",
+      "downloadBytes": 4368462326,
+      "uses": [
+        "chat",
+        "code"
+      ],
+      "quality": 2,
+      "supportsTools": false,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "tags": [
+        "chat",
+        "uncensored"
+      ],
+      "uncensored": true,
+      "license": "apache-2.0",
+      "notes": "Dolphin 2.8 on Mistral 7B: the classic uncensored model. Quick, but older and weaker than the Qwen-based options."
+    },
+    {
+      "id": "dolphin-llama3-8b",
+      "name": "Dolphin Llama 3 8B",
+      "ollamaTag": "dolphin-llama3:8b-v2.9-q4_K_M",
+      "paramsB": 8.0,
+      "activeParamsB": null,
+      "quant": "Q4_K_M",
+      "downloadBytes": 4920757997,
+      "uses": [
+        "chat",
+        "code"
+      ],
+      "quality": 2,
+      "supportsTools": false,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "tags": [
+        "chat",
+        "uncensored"
+      ],
+      "uncensored": true,
+      "license": "llama-3",
+      "recommendedContext": 8192,
+      "notes": "Dolphin 2.9 on Llama 3 8B, uncensored. Llama 3 handles at most 8K tokens of context."
+    },
+    {
+      "id": "dolphin-mixtral-8x7b",
+      "name": "Dolphin Mixtral 8x7B",
+      "ollamaTag": "dolphin-mixtral:8x7b-v2.7-q4_K_M",
+      "paramsB": 46.7,
+      "activeParamsB": 12.9,
+      "quant": "Q4_K_M",
+      "downloadBytes": 28448491158,
+      "uses": [
+        "chat",
+        "code"
+      ],
+      "quality": 3,
+      "supportsTools": false,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "tags": [
+        "chat",
+        "coding",
+        "uncensored"
+      ],
+      "uncensored": true,
+      "license": "apache-2.0",
+      "notes": "Dolphin 2.7 on Mixtral 8x7B, uncensored. A mixture-of-experts reading about 13B per word, so slower than it looks on paper and needs 30 GB of memory."
+    },
+    {
+      "id": "dolphin-llama3-70b",
+      "name": "Dolphin Llama 3 70B",
+      "ollamaTag": "dolphin-llama3:70b-v2.9-q4_K_M",
+      "paramsB": 70.6,
+      "activeParamsB": null,
+      "quant": "Q4_K_M",
+      "downloadBytes": 42520428583,
+      "uses": [
+        "chat",
+        "code"
+      ],
+      "quality": 4,
+      "supportsTools": false,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "tags": [
+        "chat",
+        "reasoning",
+        "uncensored"
+      ],
+      "uncensored": true,
+      "license": "llama-3",
+      "recommendedContext": 8192,
+      "notes": "Dolphin 2.9 on Llama 3 70B, uncensored. Smart, but dense: every word reads all 70B weights, so on a processor expect around 1 word a second."
+    },
+    {
+      "id": "wizard-vicuna-uncensored-30b",
+      "name": "Wizard Vicuna 30B Uncensored",
+      "ollamaTag": "wizard-vicuna-uncensored:30b-q4_K_M",
+      "paramsB": 32.5,
+      "activeParamsB": null,
+      "quant": "Q4_K_M",
+      "downloadBytes": 19621139948,
+      "uses": [
+        "chat"
+      ],
+      "quality": 2,
+      "supportsTools": false,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "tags": [
+        "chat",
+        "uncensored"
+      ],
+      "uncensored": true,
+      "license": "llama",
+      "recommendedContext": 2048,
+      "notes": "An early (2023) uncensored model on the original LLaMA. Slow for what it gives and limited to 2K tokens of context; kept for people who ask for it by name."
+    },
+    {
+      "id": "nous-hermes2-34b",
+      "name": "Nous Hermes 2 Yi 34B",
+      "ollamaTag": "nous-hermes2:34b-yi-q4_K_M",
+      "paramsB": 34.4,
+      "activeParamsB": null,
+      "quant": "Q4_K_M",
+      "downloadBytes": 20658722535,
+      "uses": [
+        "chat"
+      ],
+      "quality": 3,
+      "supportsTools": false,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "tags": [
+        "chat"
+      ],
+      "uncensored": false,
+      "license": "apache-2.0",
+      "notes": "Nous Research's Hermes 2 on Yi 34B: follows system prompts closely and refuses rarely. Dense, so slow on a processor."
+    },
+    {
+      "id": "nous-hermes2-mixtral-8x7b",
+      "name": "Nous Hermes 2 Mixtral 8x7B",
+      "ollamaTag": "nous-hermes2-mixtral:8x7b-dpo-q4_K_M",
+      "paramsB": 46.7,
+      "activeParamsB": 12.9,
+      "quant": "Q4_K_M",
+      "downloadBytes": 28448490706,
+      "uses": [
+        "chat",
+        "code"
+      ],
+      "quality": 3,
+      "supportsTools": false,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "tags": [
+        "chat",
+        "coding"
+      ],
+      "uncensored": false,
+      "license": "apache-2.0",
+      "notes": "Hermes 2 on Mixtral 8x7B: a strong 2024-era all-rounder that refuses rarely. Mixture-of-experts, about 13B read per word."
+    },
+    {
+      "id": "openhermes-7b",
+      "name": "OpenHermes 2.5 7B",
+      "ollamaTag": "openhermes:7b-mistral-v2.5-q4_K_M",
+      "paramsB": 7.2,
+      "activeParamsB": null,
+      "quant": "Q4_K_M",
+      "downloadBytes": 4368450725,
+      "uses": [
+        "chat",
+        "code"
+      ],
+      "quality": 2,
+      "supportsTools": false,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "tags": [
+        "chat"
+      ],
+      "uncensored": false,
+      "license": "apache-2.0",
+      "notes": "OpenHermes 2.5 on Mistral 7B: light alignment and a good system-prompt follower for its size. Older; the Qwen 9B models are stronger."
+    },
+    {
+      "id": "mistral-nemo-12b",
+      "name": "Mistral Nemo 12B",
+      "ollamaTag": "mistral-nemo:12b-instruct-2407-q4_K_M",
+      "paramsB": 12.2,
+      "activeParamsB": null,
+      "quant": "Q4_K_M",
+      "downloadBytes": 7477216741,
+      "uses": [
+        "chat",
+        "tools"
+      ],
+      "quality": 3,
+      "supportsTools": true,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "tags": [
+        "chat"
+      ],
+      "uncensored": false,
+      "license": "apache-2.0",
+      "notes": "Mistral and NVIDIA's 12B with light alignment and a long context window (up to 128K tokens if there is memory for it)."
+    },
+    {
+      "id": "deepseek-coder-v2-16b",
+      "name": "DeepSeek Coder V2 Lite 16B",
+      "ollamaTag": "deepseek-coder-v2:16b-lite-instruct-q4_K_M",
+      "paramsB": 15.7,
+      "activeParamsB": 2.4,
+      "quant": "Q4_K_M",
+      "downloadBytes": 10364432049,
+      "uses": [
+        "code"
+      ],
+      "quality": 3,
+      "supportsTools": false,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "tags": [
+        "coding"
+      ],
+      "uncensored": false,
+      "license": "deepseek",
+      "notes": "DeepSeek's coding mixture-of-experts: reads only 2.4B per word, so it is quick on a processor for a 16B model."
+    },
+    {
+      "id": "codestral-22b",
+      "name": "Codestral 22B",
+      "ollamaTag": "codestral:22b-v0.1-q4_K_M",
+      "paramsB": 22.2,
+      "activeParamsB": null,
+      "quant": "Q4_K_M",
+      "downloadBytes": 13341249568,
+      "uses": [
+        "code"
+      ],
+      "quality": 3,
+      "supportsTools": false,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "tags": [
+        "coding"
+      ],
+      "uncensored": false,
+      "license": "mistral-non-production",
+      "notes": "Mistral's coding model, good at filling in code. Its licence forbids production or commercial use."
+    },
+    {
+      "id": "starcoder2-15b",
+      "name": "StarCoder2 15B Instruct",
+      "ollamaTag": "starcoder2:15b-instruct-v0.1-q4_K_M",
+      "paramsB": 16.0,
+      "activeParamsB": null,
+      "quant": "Q4_K_M",
+      "downloadBytes": 9860201543,
+      "uses": [
+        "code"
+      ],
+      "quality": 2,
+      "supportsTools": false,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "tags": [
+        "coding"
+      ],
+      "uncensored": false,
+      "license": "bigcode-openrail-m",
+      "recommendedContext": 16384,
+      "notes": "BigCode's open coding model, trained only on permissively licensed code. Weaker at conversation than the Qwen coders."
+    },
+    {
+      "id": "qwen2.5-coder-32b",
+      "name": "Qwen2.5 Coder 32B",
+      "ollamaTag": "qwen2.5-coder:32b-instruct-q4_K_M",
+      "paramsB": 32.8,
+      "activeParamsB": null,
+      "quant": "Q4_K_M",
+      "downloadBytes": 19851349410,
+      "uses": [
+        "code",
+        "tools"
+      ],
+      "quality": 4,
+      "supportsTools": true,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "tags": [
+        "coding"
+      ],
+      "uncensored": false,
+      "license": "apache-2.0",
+      "notes": "Qwen's dense 32B coder, strong but slow on a processor. Qwen3 Coder 30B, a mixture-of-experts, is several times faster here."
+    },
+    {
+      "id": "command-r-35b",
+      "name": "Command R 35B",
+      "ollamaTag": "command-r:35b-08-2024-q4_K_M",
+      "paramsB": 32.3,
+      "activeParamsB": null,
+      "quant": "Q4_K_M",
+      "downloadBytes": 19800850086,
+      "uses": [
+        "chat",
+        "tools"
+      ],
+      "quality": 3,
+      "supportsTools": true,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "tags": [
+        "chat",
+        "research"
+      ],
+      "uncensored": false,
+      "license": "cc-by-nc-4.0",
+      "notes": "Cohere's model built for answering from documents you give it (retrieval) and for tool use. Non-commercial licence."
+    },
+    {
+      "id": "llama3-chatqa-8b",
+      "name": "Llama3 ChatQA 1.5 8B",
+      "ollamaTag": "llama3-chatqa:8b-v1.5-q4_K_M",
+      "paramsB": 8.0,
+      "activeParamsB": null,
+      "quant": "Q4_K_M",
+      "downloadBytes": 4920746338,
+      "uses": [
+        "chat"
+      ],
+      "quality": 2,
+      "supportsTools": false,
+      "minOllamaVersion": "0.0.0",
+      "toolAccuracy": null,
+      "tags": [
+        "research"
+      ],
+      "uncensored": false,
+      "license": "llama-3",
+      "recommendedContext": 8192,
+      "notes": "NVIDIA's Llama 3 tuned for answering questions about text you paste in. Not a general chat model and not uncensored."
     }
   ]
 }

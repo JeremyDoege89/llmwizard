@@ -195,3 +195,74 @@ hops to the IO dispatcher itself, and new regexes escape braces.
 - Not built: the Tailscale wizard (needs Pro and an interactive login) and the phone-side check
   over mobile data (it needs the server's public address, which only a third-party "what is my
   IP" service would give; that conflicts with the no-other-traffic fence, so it needs Jay's call).
+
+## 2026-10-13: BUILD_PLAN expansion (E1, E2.1-2.3/2.5, E5.1) — first slice
+
+Jay's `docs/BUILD_PLAN.md` adds five expansion phases. This slice is the plan's own steps 1–3
+(catalog + schema + article schema, filter + explanations, model config + benchmark). Training
+(E3) and agents (E4) are not started; see "Needs Jay" below.
+
+**Catalog (E1.1).** Every tag in the plan was resolved on registry.ollama.ai (manifest, config
+blob, template, licence) on 2026-10-13. 10 of the plan's 17 tags do not exist as written. They were
+corrected where a real tag exists:
+`nous-hermes2:34b-yi-q4_K_M`, `nous-hermes2-mixtral:8x7b-dpo-q4_K_M` (not `nous-hermes-2-mixtral`),
+`openhermes:7b-mistral-v2.5-q4_K_M`, `llama3-chatqa:8b-v1.5-q4_K_M`,
+`mistral-nemo:12b-instruct-2407-q4_K_M`, `deepseek-coder-v2:16b-lite-instruct-q4_K_M`,
+`qwen2.5-coder:32b-instruct-q4_K_M`, `command-r:35b-08-2024-q4_K_M`,
+`starcoder2:15b-instruct-v0.1-q4_K_M` (the plain tag is a base completion model).
+`dolphin3:24b` does not exist (Ollama has only `dolphin3:8b`), so `dolphin3:8b-llama3.1-q4_K_M` is used.
+- Dropped: `samantha-mistral` (a companion persona, not uncensored, outclassed) and `yi:34b-chat`
+  (same Yi 34B base as Nous Hermes 2 34B, which is the better tune).
+- Added beyond the plan: `dolphin-mixtral:8x7b` and six abliterated community builds of current
+  models (`huihui_ai/qwen3.5-abliterated` 4B/9B/35B-A3B, `qwen3-abliterated` 30B-A3B,
+  `qwen3-coder-abliterated` 30B-A3B, `gpt-oss-abliterated` 20B). The plan's list is mostly
+  2023–24 dense models; on a CPU-only box the MoE abliterated ones are both smarter and faster.
+- `uncensored: true` only for models that really are (Dolphin, Wizard Vicuna Uncensored,
+  abliterated). The plan marked Nous Hermes, OpenHermes, ChatQA, Yi, Mistral Nemo and Command R as
+  uncensored-adjacent; they are lightly aligned and are tagged `chat`/`research` instead.
+- `supportsTools` comes from the registry, not the plan: true only when the template has `.Tools`
+  or the config names a built-in renderer/parser (the huihui qwen3.5 uploads carry Ollama's
+  `qwen3.5` renderer). That makes Nous Hermes 2 34B and the Mixtral tunes false, though the plan
+  said true. `toolAccuracy` stays null until the E1.7 eval run.
+- Fixes to the plan's metadata: DeepSeek Coder V2 Lite is MoE (2.4B active), Codestral is
+  non-production licensed, Command R is CC-BY-NC. These show on the card.
+- `recommendedContext` is set where a model's trained window is below the app's 8K default
+  (Wizard Vicuna 2K). It also caps the KV estimate. Llama 3 entries carry 8K for the advisor.
+
+**Uncensored is opt-in.** `ModelFilter.DEFAULT` leaves uncensored models out, so the plain setup
+flow recommends exactly what it did before (a test checks this). `Recommendation.candidates` is the
+filtered list. The new `allCandidates` keeps every model, so an installed uncensored model still
+gets its estimate.
+
+**Speed reality vs. the plan's section 12.** The plan expects ~19 tok/s for a dense 7B and ~2 tok/s
+for 70B on the DL380p. The calibrated model, built from measurements on that box (dense 27B at
+1.2 tok/s), predicts ~3–4 tok/s for a dense 7B and ~0.3–0.4 for a dense 70B. Not yet measured
+directly: benchmark `dolphin-mistral` on wiz-ubuntu to settle it.
+
+**Model configuration (E2.1/E2.2) goes through `/api/create`, not a Modelfile recipe.** The plan's
+recipe writes a temp Modelfile and runs `ollama create` in a shell. Ollama's API takes
+`from`/`system`/`parameters` as JSON, so the free-text system prompt never passes through a shell
+(rule 2), no temp file or sudo is needed, and it matches how delete already works (API). The
+Modelfile form is still generated, for the preview. Undo = delete the custom tag.
+
+**Benchmark (E2.5)** already existed. Added `Benchmark.compare` (measured vs. estimated, with error).
+
+**Knowledge base (E5.1).** Articles are Markdown files with a `---` header in `knowledge/` at the
+repo root, bundled like the catalog, listed in `index.txt`. Four seed articles, written from the
+DL380p measurements. The other ~26 (E5.2) are content work still to do.
+
+**Needs Jay before E3/E4:**
+1. **Open Interpreter with auto-run (E4.2/E4.4) breaks SPEC rule 10** ("the model never writes a
+   shell command"). The example profile sets `autoRun: true`. Options: (a) Open Interpreter only
+   with `auto_run = False`, so every command waits for approval in its terminal, shown on the phone;
+   (b) rule 10 covers the phone assistant only, and server-side agents are a separate,
+   clearly labelled tier; (c) Aider only.
+2. **Fence: "runtimes other than Ollama".** The training stack (PyTorch, llama.cpp build), Aider
+   and Open Interpreter are pip/venv installs on the target. Is that inside or outside the fence?
+3. **E3 facts that need correcting before building:** Unsloth needs a GPU (no CPU path);
+   bitsandbytes 4-bit QLoRA on CPU is experimental at best, so CPU training should be plain LoRA
+   in bf16/fp32. llama.cpp's converter is `convert_hf_to_gguf.py` (not `convert.py`), and
+   `convert_lora_to_gguf.py` lets Ollama load the adapter with `ADAPTER` without merging.
+   Fine-tuning also needs the Hugging Face weights, so every trainable catalog entry needs an
+   `hfRepo`. Ollama's GGUF cannot be trained.
+4. Used RTX 3090 prices are about $700–900 (2026), not $400.

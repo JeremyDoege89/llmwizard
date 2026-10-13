@@ -36,6 +36,8 @@ data class Candidate(
     val estimate: Estimate? = null,
     val memoryNeededBytes: Long,
     val matchesIntent: Boolean,
+    /** Plain-English "why this model" for the model card and the install flow (BUILD_PLAN E1.5). */
+    val explanation: String = "",
 )
 
 @Serializable
@@ -50,8 +52,11 @@ data class Recommendation(
     val leastBad: Boolean,
     /** Plain-English caveats: unknown memory, intent mismatch, measured accuracy missing. */
     val notes: List<String>,
+    /** Every catalog model that passed the filter, fitting or not. */
     val candidates: List<Candidate>,
     val bandwidthLabel: String?,
+    /** Every catalog model, filter ignored: for looking up an installed model's estimate. */
+    val allCandidates: List<Candidate> = candidates,
 )
 
 /**
@@ -61,7 +66,12 @@ data class Recommendation(
 class Recommender(private val catalog: Catalog) {
     private val c = catalog.constants
 
-    fun recommend(p: HardwareProfile, intent: Intent = Intent.CHAT, contextLength: Int = c.defaultContextLength): Recommendation {
+    fun recommend(
+        p: HardwareProfile,
+        intent: Intent = Intent.CHAT,
+        contextLength: Int = c.defaultContextLength,
+        filter: ModelFilter = ModelFilter.DEFAULT,
+    ): Recommendation {
         val notes = mutableListOf<String>()
         val ram = p.memory?.availableBytes ?: p.memory?.totalBytes?.let { it - 1_500_000_000L }
         if (ram == null) notes += "Could not read how much memory this machine has, so nothing can be checked for fit. Scan again, or enter it by hand."
@@ -71,7 +81,9 @@ class Recommender(private val catalog: Catalog) {
         if (freeDisk == null) notes += "Could not read free disk space; make sure there is room for the download."
         val needRuntime = p.ollama?.installed != true
 
-        val candidates = catalog.models.map { e -> evaluate(e, p, intent, contextLength, ram, vram, cpuBw, freeDisk, needRuntime) }
+        val all = catalog.models.map { e -> evaluate(e, p, intent, contextLength, ram, vram, cpuBw, freeDisk, needRuntime) }
+        val candidates = all.filter { filter.matches(it.entry) }
+        if (candidates.isEmpty()) notes += "No model in the catalog matches the current filter."
         val fitting = candidates.filter { it.fits && it.estimate != null }
         val preferred = fitting.filter { it.matchesIntent }.ifEmpty { fitting }
 
@@ -100,7 +112,7 @@ class Recommender(private val catalog: Catalog) {
         if (intent == Intent.ASSISTANT && pick != null && pick.entry.toolAccuracy == null) {
             notes += "How reliably ${pick.entry.name} picks the right phone action has not been measured yet."
         }
-        if (pick == null && ram != null) {
+        if (pick == null && ram != null && candidates.isNotEmpty()) {
             notes += "No model in the catalog fits on this machine."
         }
 
@@ -112,6 +124,7 @@ class Recommender(private val catalog: Catalog) {
             notes = notes,
             candidates = candidates,
             bandwidthLabel = cpuBw?.label,
+            allCandidates = all,
         )
     }
 
@@ -119,29 +132,77 @@ class Recommender(private val catalog: Catalog) {
         e: ModelEntry, p: HardwareProfile, intent: Intent, ctx: Int,
         ram: Long?, vram: Long?, cpuBw: Bandwidth?, freeDisk: Long?, needRuntime: Boolean,
     ): Candidate {
-        val kv = c.kvBytesPer1kTokensBySize.first { e.paramsB <= it.maxParamsB }.bytes * ctx / 1024
+        val kv = kvBytes(e, ctx)
         val need = e.downloadBytes + kv + c.fixedOverheadBytes
         val matches = when (intent) {
             Intent.ASSISTANT -> e.supportsTools
             else -> intent.use in e.uses
         }
         val diskNeed = e.downloadBytes + c.diskSpareBytes + if (needRuntime) c.runtimeBytes else 0
-        if (freeDisk != null && freeDisk < diskNeed) {
-            return Candidate(e, false, "Needs ${gb(diskNeed)} of free disk, there is ${gb(freeDisk)}.", memoryNeededBytes = need, matchesIntent = matches)
+        val cand = when {
+            freeDisk != null && freeDisk < diskNeed ->
+                Candidate(e, false, "Needs ${gb(diskNeed)} of free disk, there is ${gb(freeDisk)}.", memoryNeededBytes = need, matchesIntent = matches)
+            vram != null && need <= vram * c.memoryHeadroomFraction -> {
+                val tps = c.kGpu * gpuBandwidth(p) * 1e9 / (e.downloadBytes * e.activeFraction)
+                Candidate(e, true, null, Placement.GPU, estimate(tps * 0.8, tps * 1.2), need, matches)
+            }
+            ram == null -> Candidate(e, false, "Memory unknown.", memoryNeededBytes = need, matchesIntent = matches)
+            need > ram * c.memoryHeadroomFraction ->
+                Candidate(e, false, "Needs about ${gb(need)} of memory, ${gb((ram * c.memoryHeadroomFraction).toLong())} is usable here.", memoryNeededBytes = need, matchesIntent = matches)
+            else -> {
+                val bw = cpuBw!!
+                val touched = e.downloadBytes * e.activeFraction
+                Candidate(e, true, null, Placement.CPU,
+                    estimate(c.k * bw.lowGBs * 1e9 / touched, c.k * bw.highGBs * 1e9 / touched), need, matches)
+            }
         }
-        val touched = e.downloadBytes * e.activeFraction
-        if (vram != null && need <= vram * c.memoryHeadroomFraction) {
-            val bw = gpuBandwidth(p)
-            val tps = c.kGpu * bw * 1e9 / touched
-            return Candidate(e, true, null, Placement.GPU, estimate(tps * 0.8, tps * 1.2), need, matches)
+        return cand.copy(explanation = explain(cand))
+    }
+
+    /**
+     * KV cache for [ctx] tokens. A model trained for less context than asked for never uses more
+     * than its own window, so that caps the estimate.
+     */
+    fun kvBytes(e: ModelEntry, ctx: Int): Long {
+        val used = min(ctx, e.recommendedContext ?: ctx)
+        return c.kvBytesPer1kTokensBySize.first { e.paramsB <= it.maxParamsB }.bytes * used / 1024
+    }
+
+    /** "Why this model", in the order a person asks: how fast, what it is, what it costs, the catch. */
+    fun explain(cand: Candidate): String {
+        val e = cand.entry
+        val parts = mutableListOf<String>()
+        val est = cand.estimate
+        parts += when {
+            est != null -> {
+                val where = if (cand.placement == Placement.GPU) "on the graphics card" else "on the processor"
+                "${e.name} should run at ${est.describe()} $where."
+            }
+            cand.fitProblem != null -> "${e.name} does not fit here: ${cand.fitProblem}"
+            else -> "${e.name}: speed unknown until the machine is scanned."
         }
-        if (ram == null) return Candidate(e, false, "Memory unknown.", memoryNeededBytes = need, matchesIntent = matches)
-        if (need > ram * c.memoryHeadroomFraction) {
-            return Candidate(e, false, "Needs about ${gb(need)} of memory, ${gb((ram * c.memoryHeadroomFraction).toLong())} is usable here.", memoryNeededBytes = need, matchesIntent = matches)
+        val size = "%.1fB".format(e.paramsB).replace(".0B", "B")
+        parts += when {
+            e.isMoe -> "It is ${article(size)} $size mixture-of-experts that reads only about ${"%.1f".format(e.activeParamsB)}B parameters per word, which is why it is quicker than its size suggests."
+            else -> "It is ${article(size)} $size model; every word it writes reads all of its weights."
         }
-        val bw = cpuBw!!
-        return Candidate(e, true, null, Placement.CPU,
-            estimate(c.k * bw.lowGBs * 1e9 / touched, c.k * bw.highGBs * 1e9 / touched), need, matches)
+        if (e.uncensored) parts += "It is uncensored: refusal training was removed, so it answers instead of arguing about what you asked."
+        parts += "${gb(e.downloadBytes)} download, about ${gb(cand.memoryNeededBytes)} of memory while loaded."
+        if (e.nonCommercial) parts += "Its licence (${e.license}) does not allow commercial use."
+        e.recommendedContext?.let { if (it < c.defaultContextLength) parts += "It only remembers about ${it / 1024}K tokens of conversation." }
+        e.toolAccuracy?.let { parts += "Picked the right phone action in ${"%.0f".format(it * 100)}% of the eval cases (measured)." }
+        tradeOff(cand)?.let { parts += "Trade-off: $it" }
+        return parts.joinToString(" ")
+    }
+
+    private fun tradeOff(cand: Candidate): String? {
+        val cls = cand.estimate?.speedClass ?: return null
+        return when {
+            cls == SpeedClass.PAINFUL || cls == SpeedClass.SLOW -> "you will wait for every answer; good for jobs you can leave running, not for conversation."
+            cand.entry.quality <= 2 -> "smaller models are quick but weaker at multi-step reasoning and long code."
+            !cls.atLeast(SpeedClass.COMFORTABLE) -> "usable, but slower than reading speed."
+            else -> null
+        }
     }
 
     private fun estimate(low: Double, high: Double): Estimate {
@@ -210,5 +271,8 @@ class Recommender(private val catalog: Catalog) {
 
     companion object {
         fun gb(b: Long) = "%.1f GB".format(b / 1e9)
+
+        /** "an 8B", "an 11B", "a 7B": numbers are read aloud. */
+        private fun article(size: String) = if (size.startsWith("8") || size.startsWith("11") || size.startsWith("18")) "an" else "a"
     }
 }
