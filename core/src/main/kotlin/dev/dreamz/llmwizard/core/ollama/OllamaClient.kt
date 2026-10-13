@@ -77,6 +77,12 @@ class OllamaClient(socketFactory: SocketFactory, private val base: HttpUrl = "ht
         http.newCall(req).execute().use { if (!it.isSuccessful) throw OllamaException(errorText(it.body.string()) ?: "HTTP ${it.code}", it.code) }
     }
 
+    /** Makes [config]'s tuned copy of a model (`/api/create` with `from`); replaces an earlier copy of the same name. */
+    suspend fun create(config: dev.dreamz.llmwizard.core.config.ModelConfig) {
+        val resp = call<CreateResponse>(post("api/create", config.createBody().toString()))
+        resp.error?.let { throw OllamaException(it) }
+    }
+
     /** Unloads a model from memory (a generate call with keep_alive 0). */
     suspend fun unload(model: String) {
         call<GenerateResponse>(post("api/generate", modelBody(model, mapOf("keep_alive" to JsonPrimitive(0), "stream" to JsonPrimitive(false)))))

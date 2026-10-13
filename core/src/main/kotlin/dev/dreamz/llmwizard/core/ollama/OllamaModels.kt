@@ -102,3 +102,7 @@ data class GenerateResponse(
     @SerialName("total_duration") val totalDuration: Long? = null,
     val error: String? = null,
 )
+
+/** `/api/create` with stream false answers `{"status":"success"}`, or an error. */
+@Serializable
+data class CreateResponse(val status: String? = null, val error: String? = null)

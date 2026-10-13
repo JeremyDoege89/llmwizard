@@ -84,3 +84,28 @@ class OllamaClientTest {
         assertEquals(20.0, r.promptTokensPerSecond!!, 0.001)
     }
 }
+
+class OllamaCreateTest {
+    private val ssh = TestSshServer()
+    private val ollama = MockWebServer()
+
+    @BeforeEach fun start() = ollama.start()
+    @AfterEach fun stop() { ollama.close(); ssh.close() }
+
+    @Test fun `create posts the config and surfaces Ollama's error`() = runBlocking {
+        ollama.enqueue(MockResponse.Builder().code(200).body("""{"status":"success"}""").build())
+        ollama.enqueue(MockResponse.Builder().code(404).body("""{"error":"model 'nope' not found"}""").build())
+        SshjTransport().connect(ssh.target(), Auth.Password(ssh.password.toCharArray()), HostKeyPolicy(MemoryHostKeyStore(), true)).use { s ->
+            val c = OllamaClient(TunnelSocketFactory({ s }, "127.0.0.1", ollama.port))
+            try {
+                c.create(dev.dreamz.llmwizard.core.config.ModelConfig("qwen3:0.6b", "tiny-terse", systemPrompt = "Be brief.", temperature = 0.2))
+                val req = ollama.takeRequest()
+                assertEquals("/api/create", req.url.encodedPath)
+                val body = req.body!!.utf8()
+                assertTrue("\"from\":\"qwen3:0.6b\"" in body && "\"system\":\"Be brief.\"" in body && "\"temperature\":0.2" in body, body)
+                val e = assertThrows<OllamaException> { runBlocking { c.create(dev.dreamz.llmwizard.core.config.ModelConfig("nope", "nope-2")) } }
+                assertEquals("model 'nope' not found", e.message)
+            } finally { c.close() }
+        }
+    }
+}

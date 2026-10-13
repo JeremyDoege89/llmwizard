@@ -32,4 +32,21 @@ object Benchmark {
             at = now(),
         )
     }
+
+    /**
+     * Measured next to estimated (BUILD_PLAN E2.5). The error is against the middle of the
+     * estimate's range, and the text keeps "estimated" and "measured" apart (SPEC.md rule 7).
+     */
+    fun compare(result: BenchmarkResult, estimate: dev.dreamz.llmwizard.core.catalog.Estimate?): String = buildString {
+        appendLine("Benchmark: ${result.model}")
+        estimate?.let { appendLine("  Estimated: ${"%.1f".format(it.midTps)} tokens/s (${it.speedClass.label})") }
+        appendLine("  Measured:  ${"%.1f".format(result.tokensPerSecond)} tokens/s")
+        estimate?.let {
+            val err = (result.tokensPerSecond - it.midTps) / it.midTps * 100
+            val inRange = result.tokensPerSecond in it.lowTps..it.highTps
+            appendLine("  Estimate was ${"%.0f".format(kotlin.math.abs(err))}% ${if (err >= 0) "low" else "high"}${if (inRange) ", inside the estimated range" else ""}.")
+        }
+        appendLine("  Loading took ${"%.1f".format(result.loadSeconds)} s")
+        result.promptTokensPerSecond?.let { appendLine("  Reading the prompt: ${"%.0f".format(it)} tokens/s") }
+    }.trimEnd()
 }
